@@ -30,6 +30,15 @@ return [
 
     'disks' => [
 
+        // Photos de contrôle : volume Docker dédié au service inventaire.
+        'controles' => [
+            'driver' => 'local',
+            'root' => storage_path('app/controles'),
+            'serve' => false,
+            'throw' => false,
+        ],
+
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
