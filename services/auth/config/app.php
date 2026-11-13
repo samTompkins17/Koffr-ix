@@ -65,7 +65,10 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Africa/Lome',
+
+    // Domaine e-mail autorisé à se connecter (vide = aucun contrôle, démonstration).
+    'allowed_email_domain' => env('ALLOWED_EMAIL_DOMAIN'),
 
     /*
     |--------------------------------------------------------------------------
