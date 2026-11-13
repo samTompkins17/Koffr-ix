@@ -1,0 +1,27 @@
+flowchart TB
+    user(["Utilisateur"])
+
+    subgraph host["Hôte Docker (docker compose)"]
+        gw["gateway (Nginx)"]
+        web["web (Laravel)"]
+        auth["auth-service"]
+        pat["patrimoine-service"]
+        inv["inventaire-service"]
+        doc["document-service"]
+        dba[("db-auth")]
+        dbp[("db-patrimoine")]
+        dbi[("db-inventaire")]
+        vol[/"volume fichiers"/]
+    end
+
+    user -->|HTTPS| gw
+    gw -->|pages| web
+    gw --> auth
+    gw --> pat
+    gw --> inv
+    gw --> doc
+    auth --> dba
+    pat --> dbp
+    inv --> dbi
+    doc --> vol
+    inv -.->|API REST| pat

@@ -1,0 +1,28 @@
+flowchart TB
+    user(["Utilisateur : navigateur ou mobile"])
+    gw["Passerelle Nginx<br/>/ · /api/auth · /api/patrimoine · /api/inventaire · /api/documents"]
+
+    web["web<br/>Laravel Blade + Tailwind"]
+    auth["auth-service<br/>Comptes, rôles, JWT"]
+    pat["patrimoine-service<br/>Biens, QR codes, transferts"]
+    inv["inventaire-service<br/>Campagnes, scan, écarts"]
+    doc["document-service (optionnel)<br/>Pièces jointes, photos"]
+
+    dba[("db-auth<br/>PostgreSQL")]
+    dbp[("db-patrimoine<br/>PostgreSQL")]
+    dbi[("db-inventaire<br/>PostgreSQL")]
+    vol[/"volume fichiers<br/>Docker"/]
+
+    user -->|HTTPS| gw
+    gw -->|"/"| web
+    gw -->|"/api/auth"| auth
+    gw -->|"/api/patrimoine"| pat
+    gw -->|"/api/inventaire"| inv
+    gw -.->|"/api/documents"| doc
+
+    auth --> dba
+    pat --> dbp
+    inv --> dbi
+    doc -.-> vol
+
+    inv -->|"REST interne : fiche du bien"| pat

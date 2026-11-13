@@ -1,0 +1,110 @@
+classDiagram
+    direction LR
+
+    namespace auth_service {
+        class Structure {
+            +uuid id
+            +string nom
+            +string type
+            +string region
+            +uuid parentId
+        }
+        class Utilisateur {
+            +uuid id
+            +string nom
+            +string email
+            +string motDePasseHash
+            +string role
+            +uuid structureId
+            +bool actif
+        }
+    }
+
+    namespace patrimoine_service {
+        class BienPatrimonial {
+            +uuid id
+            +string codeUnique
+            +string designation
+            +string categorie
+            +decimal valeurAcquisition
+            +date dateAcquisition
+            +string etat
+            +string statut
+            +float latitude
+            +float longitude
+            +uuid structureId
+            +uuid responsableId
+        }
+        class MouvementPatrimoine {
+            +uuid id
+            +uuid bienId
+            +string type
+            +date date
+            +uuid structureOrigineId
+            +uuid structureDestinationId
+            +string motif
+            +string statutValidation
+            +uuid auteurId
+        }
+        class JournalAudit {
+            +uuid id
+            +uuid utilisateurId
+            +string action
+            +string objet
+            +date date
+        }
+        class ProcesVerbal {
+            +uuid id
+            +string type
+            +date date
+            +uuid structureId
+            +uuid genereParId
+            +string cheminPdf
+        }
+    }
+
+    namespace inventaire_service {
+        class CampagneInventaire {
+            +uuid id
+            +string nom
+            +date dateDebut
+            +date dateFin
+            +uuid structureId
+            +string statut
+        }
+        class ControleInventaire {
+            +uuid id
+            +uuid campagneId
+            +uuid bienId
+            +string etatConstate
+            +float latitude
+            +float longitude
+            +bool ecartDetecte
+            +uuid agentId
+            +date date
+        }
+    }
+
+    namespace document_service {
+        class Document {
+            +uuid id
+            +uuid bienId
+            +uuid controleId
+            +string type
+            +string cheminFichier
+            +date dateAjout
+            +uuid auteurId
+        }
+    }
+
+    Structure "1" --> "*" Utilisateur
+    BienPatrimonial "1" --> "*" MouvementPatrimoine
+    MouvementPatrimoine "*" --> "0..1" ProcesVerbal
+    CampagneInventaire "1" --> "*" ControleInventaire
+
+    ControleInventaire ..> BienPatrimonial : bienId
+    Document ..> BienPatrimonial : bienId
+    Document ..> ControleInventaire : controleId
+
+    note for MouvementPatrimoine "type : AFFECTATION, TRANSFERT, MAINTENANCE ou SORTIE. Table en ajout seul."
+    note for ControleInventaire "Un bien contrôlé une fois par campagne."

@@ -1,0 +1,40 @@
+flowchart LR
+    adm(["Administrateur"])
+    cm(["Comptable matières"])
+    ag(["Agent de patrimoine"])
+    resp(["Responsable de service"])
+    ctl(["Contrôleur"])
+    pub(["Public (scan du QR code)"])
+
+    subgraph GEPAT["Système GEPAT"]
+        UC1(["Gérer comptes, rôles et structures"])
+        UC2(["Créer et immatriculer un bien"])
+        UC3(["Affecter ou transférer un bien"])
+        UC4(["Enregistrer une maintenance"])
+        UC5(["Déclarer une sortie (réforme, cession, perte)"])
+        UC6(["Valider un transfert ou une sortie"])
+        UC7(["Réaliser un inventaire par scan"])
+        UC8(["Joindre un document"])
+        UC9(["Consulter carte et tableau de bord"])
+        UC10(["Consulter l'historique et le journal d'audit"])
+        UC11(["Vérifier un bien par QR code (public)"])
+        UC12(["Générer un procès-verbal"])
+        UC13(["Consulter la vue nationale"])
+    end
+
+    adm --- UC1
+    cm --- UC2
+    cm --- UC3
+    cm --- UC4
+    cm --- UC5
+    cm --- UC8
+    cm --- UC12
+    resp --- UC6
+    resp --- UC9
+    resp --- UC13
+    ag --- UC7
+    ag --- UC8
+    ctl --- UC9
+    ctl --- UC10
+    ctl --- UC13
+    pub --- UC11
