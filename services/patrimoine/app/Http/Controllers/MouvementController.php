@@ -19,6 +19,33 @@ class MouvementController extends Controller
     }
 
     /**
+     * Derniers mouvements toutes structures confondues (tableau de bord).
+     * Le web affiche le code et la désignation du bien concerné.
+     */
+    public function recents(Request $request)
+    {
+        $limite = min(max((int) $request->query('limite', 5), 1), 20);
+
+        $mouvements = Mouvement::with('bien')
+            ->orderByDesc('date')
+            ->limit($limite)
+            ->get()
+            ->map(fn (Mouvement $mouvement) => [
+                'id' => $mouvement->id,
+                'type' => $mouvement->type,
+                'date' => $mouvement->date,
+                'motif' => $mouvement->motif,
+                'statut_validation' => $mouvement->statut_validation,
+                'auteur_id' => $mouvement->auteur_id,
+                'bien_id' => $mouvement->bien_id,
+                'bien_code' => $mouvement->bien?->code_unique,
+                'bien_designation' => $mouvement->bien?->designation,
+            ]);
+
+        return response()->json($mouvements);
+    }
+
+    /**
      * Déclare un mouvement.
      * Transfert : en une seule transaction, on écrit le mouvement puis on met
      * à jour la structure et le responsable du bien (pas de validation préalable).

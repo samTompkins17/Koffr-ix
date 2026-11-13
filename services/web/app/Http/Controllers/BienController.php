@@ -157,59 +157,6 @@ class BienController extends ControleurKoffr
         return redirect()->route('biens.fiche', $id)->with('succes', 'Fiche mise à jour. Le code patrimoine reste inchangé.');
     }
 
-    public function formulaireTransfert(string $id)
-    {
-        if (! $this->roleAutorise(['comptable_matieres', 'responsable_service'])) {
-            return redirect()->route('biens.fiche', $id)->with('erreur', 'Votre rôle ne permet pas de déclarer un mouvement.');
-        }
-
-        $reponse = $this->api()->get('/api/patrimoine/biens/'.$id);
-
-        if ($reponse->status() === 401) {
-            return $this->sessionExpiree();
-        }
-
-        if (! $reponse->successful()) {
-            abort(404, 'Bien introuvable.');
-        }
-
-        return view('biens.transfert', [
-            'bien' => $reponse->json(),
-            'toutesStructures' => $this->api()->get('/api/auth/structures')->json() ?? [],
-        ]);
-    }
-
-    public function transferer(Request $request, string $id)
-    {
-        if (! $this->roleAutorise(['comptable_matieres', 'responsable_service'])) {
-            return redirect()->route('biens.fiche', $id)->with('erreur', 'Votre rôle ne permet pas de déclarer un mouvement.');
-        }
-
-        $donnees = $request->validate([
-            'type' => ['required', 'in:affectation,transfert'],
-            'structure_destination_id' => ['required', 'uuid'],
-            'motif' => ['required', 'string', 'max:500'],
-        ]);
-
-        $reponse = $this->api()->post('/api/patrimoine/biens/'.$id.'/mouvements', $donnees);
-
-        if ($reponse->status() === 401) {
-            return $this->sessionExpiree();
-        }
-
-        if ($reponse->status() === 422) {
-            return back()->withInput()->withErrors($reponse->json('errors') ?? [])
-                ->with('erreur', $this->messageErreur($reponse));
-        }
-
-        if (! $reponse->successful()) {
-            return back()->withInput()->with('erreur', $this->messageErreur($reponse));
-        }
-
-        return redirect()->route('biens.fiche', $id)
-            ->with('succes', 'Mouvement enregistré : la structure du bien a été mise à jour.');
-    }
-
     public function etiquette(string $id)
     {
         $reponse = $this->api()->get('/api/patrimoine/biens/'.$id);

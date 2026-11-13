@@ -4,12 +4,16 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BienController;
 use App\Http\Controllers\CampagneController;
 use App\Http\Controllers\ControleController;
+use App\Http\Controllers\EcartController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\TableauDeBordController;
+use App\Http\Controllers\TransfertController;
 use App\Http\Middleware\AssurerSession;
 use Illuminate\Support\Facades\Route;
 
 // --- Pages sans connexion ---
+Route::get('/verifier', [PublicController::class, 'formulaire'])->name('public.formulaire');
+Route::post('/verifier', [PublicController::class, 'rechercher'])->name('public.rechercher');
 Route::get('/verifier/{code}', [PublicController::class, 'verifier'])->name('public.verifier');
 Route::get('/connexion', [AuthController::class, 'formulaire'])->name('connexion');
 Route::post('/connexion', [AuthController::class, 'connexion'])->name('connexion.post');
@@ -28,17 +32,23 @@ Route::middleware(AssurerSession::class)->group(function () {
     Route::get('/biens/{id}', [BienController::class, 'fiche'])->name('biens.fiche');
     Route::get('/biens/{id}/modifier', [BienController::class, 'modifier'])->name('biens.modifier');
     Route::put('/biens/{id}', [BienController::class, 'mettreAJour'])->name('biens.mettre-a-jour');
-    Route::get('/biens/{id}/transfert', [BienController::class, 'formulaireTransfert'])->name('biens.transfert');
-    Route::post('/biens/{id}/transfert', [BienController::class, 'transferer'])->name('biens.transfert.post');
     Route::get('/biens/{id}/etiquette', [BienController::class, 'etiquette'])->name('biens.etiquette');
     Route::get('/biens/{id}/qrcode.svg', [BienController::class, 'qrCode'])->name('biens.qrcode');
+    // Ancien lien conservé : ouvre la page des mouvements avec le bien choisi.
+    Route::get('/biens/{id}/transfert', fn (string $id) => redirect()->route('transferts.index', ['bien' => $id]));
+
+    // Affectations et transferts
+    Route::get('/transferts', [TransfertController::class, 'index'])->name('transferts.index');
+    Route::post('/transferts', [TransfertController::class, 'store'])->name('transferts.store');
 
     // Campagnes d'inventaire
     Route::get('/campagnes', [CampagneController::class, 'index'])->name('campagnes.index');
-    Route::get('/campagnes/ouvrir', [CampagneController::class, 'creer'])->name('campagnes.creer');
     Route::post('/campagnes', [CampagneController::class, 'enregistrer'])->name('campagnes.enregistrer');
     Route::get('/campagnes/{id}', [CampagneController::class, 'fiche'])->name('campagnes.fiche');
-    Route::get('/campagnes/{id}/ecarts', [CampagneController::class, 'ecarts'])->name('campagnes.ecarts');
+
+    // Écarts et rapports
+    Route::get('/ecarts', [EcartController::class, 'index'])->name('ecarts.index');
+    Route::get('/ecarts/export.csv', [EcartController::class, 'exportCsv'])->name('ecarts.export');
 
     // Contrôle par scan
     Route::get('/controles/scan', [ControleController::class, 'scan'])->name('controles.scan');

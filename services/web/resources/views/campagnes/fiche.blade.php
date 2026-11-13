@@ -28,7 +28,7 @@
                 </a>
             @endif
             @if (in_array($role, ['comptable_matieres', 'controleur']))
-                <a href="{{ route('campagnes.ecarts', $campagne['id']) }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-50">
+                <a href="{{ route('ecarts.index', ['campagne' => $campagne['id']]) }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-50">
                     Voir les écarts
                 </a>
             @endif

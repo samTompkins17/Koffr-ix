@@ -14,6 +14,7 @@ Route::get('/public/biens/{code}', [PublicController::class, 'bien']);
 Route::middleware('jwt')->group(function () {
     Route::get('/biens', [BienController::class, 'index']);
     Route::get('/stats', [BienController::class, 'stats']);
+    Route::get('/mouvements/recents', [MouvementController::class, 'recents']);
     Route::get('/biens/code/{code}', [BienController::class, 'parCode']);
     Route::get('/biens/{id}', [BienController::class, 'show']);
     Route::get('/biens/{id}/qrcode', [QrCodeController::class, 'svg']);

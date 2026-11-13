@@ -110,7 +110,21 @@ class ControleController extends Controller
     }
 
     /**
-     * Liste des écarts : lecture seule (comptable et contrôleur).
+     * Tous les écarts, toutes campagnes confondues (page « Écarts et rapports »).
+     */
+    public function tousLesEcarts(Request $request)
+    {
+        $requete = Controle::where('ecart_detecte', true);
+
+        if ($request->filled('campagne_id')) {
+            $requete->where('campagne_id', $request->query('campagne_id'));
+        }
+
+        return response()->json($requete->orderByDesc('date')->get());
+    }
+
+    /**
+     * Liste des écarts d'une campagne : lecture seule (comptable et contrôleur).
      */
     public function ecarts(string $campagneId)
     {

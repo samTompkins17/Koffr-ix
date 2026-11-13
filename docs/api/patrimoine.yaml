@@ -163,6 +163,19 @@ paths:
               schema: { $ref: '#/components/schemas/Mouvement' }
         '403': { $ref: '#/components/responses/Interdit' }
         '422': { $ref: '#/components/responses/Validation' }
+  /mouvements/recents:
+    get:
+      summary: Derniers mouvements, avec le code et la désignation du bien
+      parameters:
+        - { name: limite, in: query, schema: { type: integer, default: 5, maximum: 20 } }
+      responses:
+        '200':
+          description: Mouvements du plus récent au plus ancien
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Mouvement' }
   /stats:
     get:
       summary: Compteurs du tableau de bord

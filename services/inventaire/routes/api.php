@@ -18,6 +18,7 @@ Route::middleware('jwt')->group(function () {
 
     // Liste des écarts en lecture seule : comptable et contrôleur.
     Route::middleware('role:comptable_matieres,controleur')->group(function () {
+        Route::get('/ecarts', [ControleController::class, 'tousLesEcarts']);
         Route::get('/campagnes/{id}/ecarts', [ControleController::class, 'ecarts']);
     });
 

@@ -100,8 +100,33 @@ section 10 de `AGENTS.md`) pour rester lisible à cette taille.
 Les écarts sont en lecture seule : aucune route d'écriture, aucun formulaire de traitement.
 La page rappelle que le traitement d'un écart est une maquette.
 
-## 15. Photos de contrôle
+## 15. Annuaire administrateur
+
+`GET /api/auth/annuaire` est réservé au rôle `admin`. Il sert la page Administration
+(comptes et structures, lecture seule). Il ne renvoie ni e-mail ni mot de passe.
+`GET /users?ids=` reste limité à `id` et `name`. La création de comptes n'est pas
+codée : elle reste une maquette, comme indiqué à la section 2 d'`AGENTS.md`.
+
+## 16. Photos de contrôle
 
 Les photos sont stockées dans le volume Docker `inventaire_photos` monté sur
 `storage/app/controles` (disque `controles`), sans `document-service`. La photo est facultative
 et n'est pas affichée dans l'interface.
+
+## 17. Interface alignée sur les maquettes
+
+La couche web reprend la structure des maquettes plutôt que des écrans génériques :
+barre latérale blanche (logo, menu, bloc utilisateur, déconnexion) et contenu sur fond gris ;
+connexion et vérification publique en écran scindé (blason + accroche à gauche, carte à droite) ;
+tableau de bord à cartes et barres ; liste des biens avec colonne valeur et pagination
+« Affichage de X à Y sur N biens » ; fiche avec bandeau d'informations, étiquette QR et frise
+d'historique ; formulaire avec bandeau d'erreurs et aperçu d'étiquette ; page unique
+« Affectations et transferts » ; inventaire en cartes de progression avec formulaire intégré ;
+page globale « Écarts et rapports » (export CSV) ; écrans mobiles avec en-tête vert et filet jaune.
+
+Éléments de maquette volontairement non codés, faute de règle métier ou de route d'écriture :
+panneau « À valider » du transfert (le mouvement est immédiat, l'API ne gère pas de validation
+différée), colonne « Traiter » des écarts, exports Excel/PDF, taux d'inventaire par structure
+(l'API ne fournit pas ce croisement), menu Carte / Procès-verbaux / Vue nationale, et
+« Mot de passe oublié ? » (aucun envoi d'e-mail). Les écrans correspondants ne sont pas affichés
+plutôt que d'afficher des boutons inactifs.

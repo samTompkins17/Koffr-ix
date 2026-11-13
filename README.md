@@ -102,14 +102,17 @@ Les trois premiers comptes sont proposés sur l'écran de connexion.
    automatiquement (`PAT-SAN-2026-0413`) et restera définitif.
 3. **Imprimer l'étiquette** : fiche du bien → « Étiquette QR » → « Imprimer ».
    Le QR code encode `http://localhost:8080/verifier/PAT-…`.
-4. **Transférer le bien** : fiche → « Affecter / Transférer » → structure de destination + motif.
+4. **Transférer le bien** : fiche → « Transférer le bien », ou menu « Affectations et transferts ».
+   Choisir le bien, le type (affectation, transfert, maintenance, sortie), la destination et le motif.
    La structure du bien est mise à jour et le mouvement apparaît dans l'historique.
-5. **Ouvrir une campagne** : « Inventaire » → « + Ouvrir une campagne ».
+5. **Ouvrir une campagne** : « Inventaire » → formulaire « Ouvrir une campagne » en bas de page.
 6. **Contrôler par scan** : se connecter avec `agent@koffr.local`, « Contrôle par scan »,
    saisir le code (ou scanner le QR code au téléphone), choisir l'état constaté « ● Hors service ».
-7. **Voir l'écart** : se connecter avec `controleur@koffr.local`, « Inventaire » → campagne →
-   « Voir les écarts » : la ligne s'affiche avec `✕ Écart`, en lecture seule.
-8. **Vérifier publiquement** : ouvrir `http://localhost:8080/verifier/<code>` sans être connecté.
+   L'encart « Écart détecté » s'affiche dès que l'état diffère de la fiche.
+7. **Voir l'écart** : se connecter avec `controleur@koffr.local`, menu « Écarts et rapports » :
+   la ligne s'affiche avec les deux états et l'agent, en lecture seule (export CSV possible).
+8. **Vérifier publiquement** : ouvrir `http://localhost:8080/verifier` sans être connecté,
+   puis saisir le code (ou ouvrir directement `http://localhost:8080/verifier/<code>`).
    Seuls le statut « bien de l'État », l'immatriculation, la catégorie et le ministère apparaissent.
 
 Le contrôleur ne peut rien écrire : les boutons de création disparaissent et l'API répond `403`.
@@ -145,6 +148,7 @@ Toutes les réponses d'erreur suivent `{"message": "...", "errors": {...}}` avec
 | GET | `/api/patrimoine/biens/{id}/qrcode` | SVG |
 | GET | `/api/patrimoine/biens/{id}/etiquette` | étiquette imprimable |
 | GET/POST | `/api/patrimoine/biens/{id}/mouvements` | lecture tous ; écriture comptable, responsable |
+| GET | `/api/patrimoine/mouvements/recents?limite=` | tous (derniers mouvements, avec code du bien) |
 | GET | `/api/patrimoine/public/biens/{code}` | **sans authentification** (vérification) |
 | GET | `/api/patrimoine/stats` | compteurs du tableau de bord |
 
@@ -152,11 +156,12 @@ Toutes les réponses d'erreur suivent `{"message": "...", "errors": {...}}` avec
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| GET | `/api/inventaire/campagnes` | tous |
+| GET | `/api/inventaire/campagnes` | tous (avec `controles_count`, `ecarts_count`) |
 | POST | `/api/inventaire/campagnes` | comptable |
 | GET | `/api/inventaire/campagnes/{id}` | tous (avec compteurs) |
 | GET | `/api/inventaire/campagnes/{id}/controles` | tous |
 | GET | `/api/inventaire/campagnes/{id}/ecarts` | comptable, contrôleur (lecture seule) |
+| GET | `/api/inventaire/ecarts?campagne_id=` | comptable, contrôleur (tous les écarts) |
 | GET | `/api/inventaire/controles/bien/{code}` | agent (fiche + dernier état connu) |
 | POST | `/api/inventaire/controles` | agent (détecte l'écart, 409 si déjà contrôlé) |
 

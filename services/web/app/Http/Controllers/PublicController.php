@@ -3,11 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Support\ApiClient;
+use Illuminate\Http\Request;
 
 class PublicController extends Controller
 {
     /**
-     * Page de vérification d'un bien, sans connexion (contenu du QR code).
+     * Formulaire public de vérification (aucune connexion).
+     */
+    public function formulaire()
+    {
+        return view('public.verifier', ['trouve' => null, 'code' => null]);
+    }
+
+    public function rechercher(Request $request)
+    {
+        $donnees = $request->validate([
+            'code' => ['required', 'string', 'max:50'],
+        ]);
+
+        return redirect()->route('public.verifier', trim($donnees['code']));
+    }
+
+    /**
+     * Résultat de la vérification : contenu du QR code.
      */
     public function verifier(string $code)
     {
@@ -22,7 +40,7 @@ class PublicController extends Controller
 
         if (! $reponse->successful()) {
             return response()->view('public.verifier', [
-                'trouve' => false,
+                'trouve' => null,
                 'code' => $code,
                 'indisponible' => true,
             ], 503);

@@ -11,7 +11,14 @@ class CampagneController extends Controller
 {
     public function index(Request $request)
     {
-        $requete = Campagne::query()->orderByDesc('date_debut');
+        // Compteurs embarqués : le web affiche la progression et les écarts
+        // sans un appel supplémentaire par campagne.
+        $requete = Campagne::query()
+            ->withCount([
+                'controles',
+                'controles as ecarts_count' => fn ($q) => $q->where('ecart_detecte', true),
+            ])
+            ->orderByDesc('date_debut');
 
         if ($request->filled('structure_id')) {
             $requete->where('structure_id', $request->query('structure_id'));

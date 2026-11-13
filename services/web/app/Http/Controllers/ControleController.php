@@ -60,6 +60,7 @@ class ControleController extends ControleurKoffr
             'bien' => $donnees['bien'],
             'dernierControle' => $donnees['dernier_controle'] ?? null,
             'campagnes' => $donnees['campagnes'] ?? [],
+            'structures' => $this->noms('/api/auth/structures', [$donnees['bien']['structure_id'] ?? null]),
         ]);
     }
 

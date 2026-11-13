@@ -3,34 +3,39 @@
 @section('titre', 'Biens')
 
 @section('contenu')
-    @php $role = session('utilisateur.role'); @endphp
+    @php
+        $role = session('utilisateur.role');
+        $debut = (($biens['current_page'] ?? 1) - 1) * ($biens['per_page'] ?? 15) + 1;
+        $fin = min(($biens['current_page'] ?? 1) * ($biens['per_page'] ?? 15), $biens['total'] ?? 0);
+    @endphp
 
-    <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold">Biens</h1>
-            <p class="text-sm text-gray-600">{{ $biens['total'] ?? 0 }} bien(s) enregistré(s)</p>
+            <h1 class="text-3xl font-extrabold">Biens</h1>
+            <p class="mt-1 text-gray-600">Retrouvez un bien par son code, sa désignation, sa catégorie ou sa structure.</p>
         </div>
         <div class="flex flex-wrap gap-2">
-            <a href="{{ route('biens.export') }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-gray-50">
+            <a href="{{ route('biens.export') }}" class="rounded-lg border border-vert px-4 py-2.5 text-sm font-semibold text-vert hover:bg-green-50">
                 Exporter en CSV
             </a>
             @if (in_array($role, ['admin', 'comptable_matieres']))
-                <a href="{{ route('biens.creer') }}" class="rounded-lg bg-vert px-4 py-2 text-sm font-semibold text-white hover:bg-vert/90">
+                <a href="{{ route('biens.creer') }}" class="rounded-lg bg-vert px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00543F]">
                     + Nouveau bien
                 </a>
             @endif
         </div>
     </div>
 
-    <form method="GET" action="{{ route('biens.index') }}" class="mb-5 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 md:grid-cols-5">
-        <div class="md:col-span-2">
-            <label for="q" class="mb-1 block text-xs font-medium text-gray-700">Recherche (désignation ou code)</label>
-            <input id="q" name="q" value="{{ $filtres['q'] ?? '' }}" placeholder="PAT-SAN-2026-0412"
-                   class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+    <form method="GET" action="{{ route('biens.index') }}" class="mb-6 grid gap-4 rounded-xl border border-gray-200 bg-white px-5 py-5 md:grid-cols-[2fr_1fr_1fr]">
+        <div>
+            <label for="q" class="mb-1.5 block text-sm font-semibold">Recherche</label>
+            <input id="q" name="q" value="{{ $filtres['q'] ?? '' }}" placeholder="Désignation ou code patrimoine"
+                   class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
         </div>
         <div>
-            <label for="categorie" class="mb-1 block text-xs font-medium text-gray-700">Catégorie</label>
-            <select id="categorie" name="categorie" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+            <label for="categorie" class="mb-1.5 block text-sm font-semibold">Catégorie</label>
+            <select id="categorie" name="categorie" onchange="this.form.submit()"
+                    class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
                 <option value="">Toutes</option>
                 @foreach (config('koffr.categories') as $categorie)
                     <option value="{{ $categorie }}" @selected(($filtres['categorie'] ?? '') === $categorie)>{{ $categorie }}</option>
@@ -38,60 +43,67 @@
             </select>
         </div>
         <div>
-            <label for="etat" class="mb-1 block text-xs font-medium text-gray-700">État</label>
-            <select id="etat" name="etat" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
+            <label for="etat" class="mb-1.5 block text-sm font-semibold">État</label>
+            <select id="etat" name="etat" onchange="this.form.submit()"
+                    class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
                 <option value="">Tous</option>
-                @foreach (['bon' => 'Bon', 'usage' => 'Usagé', 'hors_service' => 'Hors service'] as $valeur => $libelle)
-                    <option value="{{ $valeur }}" @selected(($filtres['etat'] ?? '') === $valeur)>{{ $libelle }}</option>
+                @foreach (['bon' => '✓ Bon', 'usage' => '▲ Usagé', 'hors_service' => '● Hors service'] as $code => $libelle)
+                    <option value="{{ $code }}" @selected(($filtres['etat'] ?? '') === $code)>{{ $libelle }}</option>
                 @endforeach
             </select>
-        </div>
-        <div class="flex items-end gap-2">
-            <button type="submit" class="w-full rounded-lg bg-vert px-3 py-2 text-sm font-semibold text-white hover:bg-vert/90">Filtrer</button>
-            <a href="{{ route('biens.index') }}" class="rounded-lg border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50">Effacer</a>
         </div>
     </form>
 
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
         <table class="w-full text-sm">
-            <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-600">
-                <tr>
-                    <th class="px-4 py-3">Code patrimoine</th>
-                    <th class="px-4 py-3">Désignation</th>
-                    <th class="px-4 py-3">Catégorie</th>
-                    <th class="px-4 py-3">Structure</th>
-                    <th class="px-4 py-3">État</th>
+            <thead class="text-left text-xs uppercase tracking-wide text-gray-600">
+                <tr class="border-b border-gray-200">
+                    <th class="px-5 py-4">Code patrimoine</th>
+                    <th class="px-5 py-4">Désignation</th>
+                    <th class="px-5 py-4">Catégorie</th>
+                    <th class="px-5 py-4">Structure</th>
+                    <th class="px-5 py-4">État</th>
+                    <th class="px-5 py-4 text-right">Valeur (FCFA)</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($biens['data'] as $bien)
-                    <tr class="border-t border-gray-100 hover:bg-gray-50">
-                        <td class="px-4 py-3 font-mono text-xs">
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="px-5 py-4 font-mono text-xs">
                             <a href="{{ route('biens.fiche', $bien['id']) }}" class="font-semibold text-vert underline">{{ $bien['code_unique'] }}</a>
                         </td>
-                        <td class="px-4 py-3">{{ $bien['designation'] }}</td>
-                        <td class="px-4 py-3 text-gray-600">{{ $bien['categorie'] }}</td>
-                        <td class="px-4 py-3 text-gray-600">{{ $structures[$bien['structure_id']] ?? '—' }}</td>
-                        <td class="px-4 py-3">@include('partials.badge-etat', ['etat' => $bien['etat']])</td>
+                        <td class="px-5 py-4 font-semibold">{{ $bien['designation'] }}</td>
+                        <td class="px-5 py-4 text-gray-700">{{ $bien['categorie'] }}</td>
+                        <td class="px-5 py-4 text-gray-700">{{ $structures[$bien['structure_id']] ?? '—' }}</td>
+                        <td class="px-5 py-4">@include('partials.badge-etat', ['etat' => $bien['etat']])</td>
+                        <td class="px-5 py-4 text-right tabular-nums">{{ number_format((int) $bien['valeur_acquisition'], 0, ',', ' ') }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-10 text-center text-gray-500">Aucun bien ne correspond à ces critères.</td>
+                        <td colspan="6" class="px-5 py-12 text-center text-gray-500">Aucun bien ne correspond à ces critères.</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
-    @if (($biens['last_page'] ?? 1) > 1)
-        <nav class="mt-4 flex items-center justify-center gap-2 text-sm" aria-label="Pagination">
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600">
+        <p>
+            @if (($biens['total'] ?? 0) > 0)
+                Affichage de {{ $debut }} à {{ $fin }} sur {{ number_format($biens['total'], 0, ',', ' ') }} biens
+            @else
+                Aucun bien affiché
+            @endif
+        </p>
+        <div class="flex gap-2">
             @if (($biens['current_page'] ?? 1) > 1)
-                <a href="{{ request()->fullUrlWithQuery(['page' => $biens['current_page'] - 1]) }}" class="rounded border border-gray-300 bg-white px-3 py-1.5">← Précédent</a>
+                <a href="{{ request()->fullUrlWithQuery(['page' => $biens['current_page'] - 1]) }}"
+                   class="rounded-lg border border-vert px-4 py-2 font-semibold text-vert hover:bg-green-50">Précédent</a>
             @endif
-            <span class="text-gray-600">Page {{ $biens['current_page'] }} sur {{ $biens['last_page'] }}</span>
             @if (($biens['current_page'] ?? 1) < ($biens['last_page'] ?? 1))
-                <a href="{{ request()->fullUrlWithQuery(['page' => $biens['current_page'] + 1]) }}" class="rounded border border-gray-300 bg-white px-3 py-1.5">Suivant →</a>
+                <a href="{{ request()->fullUrlWithQuery(['page' => $biens['current_page'] + 1]) }}"
+                   class="rounded-lg border border-vert px-4 py-2 font-semibold text-vert hover:bg-green-50">Suivant</a>
             @endif
-        </nav>
-    @endif
+        </div>
+    </div>
 @endsection

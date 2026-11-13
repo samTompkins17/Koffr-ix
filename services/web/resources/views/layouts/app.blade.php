@@ -1,6 +1,24 @@
 @php
     $utilisateur = session('utilisateur', []);
     $role = $utilisateur['role'] ?? null;
+    $roleLibelle = config('koffr.roles')[$role] ?? $role;
+    $ministere = config('koffr.ministeres')[$utilisateur['ministere_code'] ?? ''] ?? null;
+
+    // Seules les pages réellement codées figurent dans le menu.
+    $liens = [
+        ['route' => 'tableau', 'motif' => 'tableau', 'libelle' => 'Tableau de bord'],
+        ['route' => 'biens.index', 'motif' => 'biens.*', 'libelle' => 'Biens'],
+        ['route' => 'transferts.index', 'motif' => 'transferts.*', 'libelle' => 'Affectations et transferts'],
+        ['route' => 'campagnes.index', 'motif' => 'campagnes.*', 'libelle' => 'Inventaire'],
+    ];
+
+    if (in_array($role, ['comptable_matieres', 'controleur'], true)) {
+        $liens[] = ['route' => 'ecarts.index', 'motif' => 'ecarts.*', 'libelle' => 'Écarts et rapports'];
+    }
+
+    if ($role === 'agent_patrimoine') {
+        $liens[] = ['route' => 'controles.scan', 'motif' => 'controles.*', 'libelle' => 'Contrôle par scan'];
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="fr">
@@ -23,52 +41,67 @@
         };
     </script>
     <style>
-        /* Charte : contraste ≥ 4,5 et tailles lisibles. */
         :focus-visible { outline: 3px solid #006A4F; outline-offset: 2px; }
         @media print {
-            header, footer, .sans-impression { display: none !important; }
+            aside, .sans-impression { display: none !important; }
+            main { padding: 0 !important; max-width: none !important; }
             body { background: #fff; }
         }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50 font-sans text-gray-900">
+<body class="min-h-screen bg-[#F7F7F7] font-sans text-gray-900">
     <a href="#contenu" class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:rounded focus:bg-vert focus:px-3 focus:py-2 focus:text-white">Aller au contenu</a>
 
-    <header class="border-b border-gray-200 bg-white">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <a href="{{ route('tableau') }}" class="flex items-center gap-3" aria-label="KOFFR-IX, tableau de bord">
-                @include('partials.logo')
-            </a>
+    <div class="flex min-h-screen">
+        {{-- Barre latérale (maquette) --}}
+        <aside class="hidden w-[280px] shrink-0 flex-col border-r border-gray-200 bg-white lg:flex">
+            <div class="px-7 py-7">
+                <a href="{{ route('tableau') }}" aria-label="KOFFR-IX, tableau de bord">@include('partials.logo')</a>
+            </div>
 
-            <nav class="flex flex-wrap items-center gap-1 text-sm font-medium" aria-label="Navigation principale">
-                <a href="{{ route('tableau') }}" class="rounded px-3 py-2 hover:bg-gray-100 {{ request()->routeIs('tableau') ? 'text-vert' : 'text-gray-700' }}">Tableau de bord</a>
-                <a href="{{ route('biens.index') }}" class="rounded px-3 py-2 hover:bg-gray-100 {{ request()->routeIs('biens.*') ? 'text-vert' : 'text-gray-700' }}">Biens</a>
-                <a href="{{ route('campagnes.index') }}" class="rounded px-3 py-2 hover:bg-gray-100 {{ request()->routeIs('campagnes.*') ? 'text-vert' : 'text-gray-700' }}">Inventaire</a>
-                @if ($role === 'agent_patrimoine')
-                    <a href="{{ route('controles.scan') }}" class="rounded px-3 py-2 hover:bg-gray-100 {{ request()->routeIs('controles.*') ? 'text-vert' : 'text-gray-700' }}">Contrôle par scan</a>
-                @endif
+            <nav class="flex-1 px-3" aria-label="Navigation principale">
+                @include('partials.navigation')
             </nav>
 
-            <div class="flex items-center gap-3">
-                <div class="text-right leading-tight">
-                    <p class="text-sm font-semibold">{{ $utilisateur['name'] ?? '' }}</p>
-                    <p class="text-xs text-gray-600">{{ config('koffr.roles')[$role] ?? $role }}</p>
-                </div>
-                <form method="POST" action="{{ route('deconnexion') }}">
+            <div class="border-t border-gray-200 px-7 py-6 text-sm">
+                <p class="font-bold">{{ $utilisateur['name'] ?? '' }}</p>
+                <p class="text-gray-600">
+                    {{ $roleLibelle }}@if ($ministere) · {{ $ministere }}@endif
+                </p>
+                <form method="POST" action="{{ route('deconnexion') }}" class="mt-1">
                     @csrf
-                    <button type="submit" class="rounded border border-gray-300 px-3 py-1.5 text-sm font-medium hover:bg-gray-100">Se déconnecter</button>
+                    <button type="submit" class="font-medium text-vert underline">Se déconnecter</button>
                 </form>
             </div>
+        </aside>
+
+        <div class="flex min-w-0 flex-1 flex-col">
+            {{-- En-tête mobile (la barre latérale est masquée sous 1024 px) --}}
+            <header class="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 lg:hidden">
+                <a href="{{ route('tableau') }}">@include('partials.logo')</a>
+                <form method="POST" action="{{ route('deconnexion') }}">
+                    @csrf
+                    <button type="submit" class="text-sm font-medium text-vert underline">Se déconnecter</button>
+                </form>
+            </header>
+            <nav class="flex gap-1 overflow-x-auto border-b border-gray-200 bg-white px-3 py-2 text-sm lg:hidden" aria-label="Navigation">
+                @foreach ($liens as $lien)
+                    <a href="{{ route($lien['route']) }}"
+                       class="whitespace-nowrap rounded-lg px-3 py-2 {{ request()->routeIs($lien['motif']) ? 'bg-green-50 font-semibold text-vert' : 'text-gray-700' }}">
+                        {{ $lien['libelle'] }}
+                    </a>
+                @endforeach
+            </nav>
+
+            <main id="contenu" class="mx-auto w-full max-w-[1120px] flex-1 px-5 py-8 lg:px-10">
+                @include('partials.alerte')
+                @yield('contenu')
+            </main>
+
+            <footer class="px-5 pb-8 text-xs text-gray-500 lg:px-10">
+                Maquette de démonstration · projet pédagogique, non officiel · données fictives
+            </footer>
         </div>
-    </header>
-
-    <main id="contenu" class="mx-auto w-full max-w-6xl px-4 py-6">
-        @include('partials.alerte')
-        @yield('contenu')
-    </main>
-
-    <footer class="mt-auto border-t border-gray-200 bg-white px-4 py-4 text-center text-xs text-gray-600">
-        Maquette de démonstration · projet pédagogique, non officiel · données fictives
-    </footer>
+    </div>
 </body>
 </html>
