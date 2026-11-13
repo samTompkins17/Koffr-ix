@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: KOFFR-IX — service inventaire
+  version: 1.0.0
+  description: |
+    Campagnes d'inventaire, contrôles par scan et détection des écarts.
+    Ce service appelle `patrimoine` (délai maximal 3 s) pour lire la fiche d'un bien.
+    Si `patrimoine` ne répond pas : réponse 503 JSON, seul le parcours de scan est dégradé.
+servers:
+  - url: http://localhost:8080/api/inventaire
+    description: Via la passerelle Nginx
+security:
+  - bearerAuth: []
+paths:
+  /campagnes:
+    get:
+      summary: Liste des campagnes
+      parameters:
+        - { name: structure_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Campagnes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Campagne' }
+    post:
+      summary: Ouvrir une campagne (comptable des matières)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nom, date_debut, date_fin, structure_id]
+              properties:
+                nom: { type: string }
+                date_debut: { type: string, format: date }
+                date_fin: { type: string, format: date }
+                structure_id: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Campagne ouverte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Campagne' }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '422': { $ref: '#/components/responses/Validation' }
+  /campagnes/{id}:
+    get:
+      summary: Fiche d'une campagne avec compteurs
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: Campagne et compteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  campagne: { $ref: '#/components/schemas/Campagne' }
+                  compteurs:
+                    type: object
+                    properties:
+                      controles: { type: integer }
+                      ecarts: { type: integer }
+                      introuvables: { type: integer }
+        '404': { $ref: '#/components/responses/Introuvable' }
+  /campagnes/{id}/controles:
+    get:
+      summary: Constats d'une campagne
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: Constats
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Controle' }
+  /campagnes/{id}/ecarts:
+    get:
+      summary: Écarts d'une campagne (lecture seule)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: Écarts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Controle' }
+        '403': { $ref: '#/components/responses/Interdit' }
+  /controles/bien/{code}:
+    get:
+      summary: Fiche du bien et dernier état connu (agent)
+      description: Lit la fiche dans `patrimoine` avec le JWT reçu. 503 si patrimoine ne répond pas.
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: Fiche et dernier constat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bien: { type: object }
+                  dernier_controle: { $ref: '#/components/schemas/Controle' }
+                  campagnes:
+                    type: array
+                    items: { $ref: '#/components/schemas/Campagne' }
+        '404': { $ref: '#/components/responses/Introuvable' }
+        '503': { $ref: '#/components/responses/Indisponible' }
+  /controles:
+    post:
+      summary: Enregistrer un constat (agent)
+      description: |
+        `etat_fiche` est copié depuis la fiche patrimoine. `ecart_detecte` vaut vrai si
+        l'état constaté diffère de l'état de la fiche (ou si le bien est introuvable).
+        Un seul contrôle par bien et par campagne : 409 sinon.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campagne_id, bien_id, etat_constate]
+              properties:
+                campagne_id: { type: string, format: uuid }
+                bien_id: { type: string, format: uuid }
+                etat_constate: { type: string, enum: [bon, usage, hors_service, introuvable] }
+                latitude: { type: number, nullable: true }
+                longitude: { type: number, nullable: true }
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo: { type: string, format: binary, description: Facultative, 5 Mo max }
+      responses:
+        '201':
+          description: Constat enregistré
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Controle' }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '409':
+          description: Bien déjà contrôlé dans cette campagne, ou campagne clôturée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '422': { $ref: '#/components/responses/Validation' }
+        '503': { $ref: '#/components/responses/Indisponible' }
+  /ping:
+    get:
+      summary: Disponibilité
+      security: []
+      responses:
+        '200': { description: OK }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    Campagne:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nom: { type: string }
+        date_debut: { type: string, format: date }
+        date_fin: { type: string, format: date }
+        structure_id: { type: string, format: uuid }
+        statut: { type: string, enum: [ouverte, cloturee] }
+    Controle:
+      type: object
+      description: Table en ajout seul (aucune route de modification ou de suppression).
+      properties:
+        id: { type: string, format: uuid }
+        campagne_id: { type: string, format: uuid }
+        bien_id: { type: string, format: uuid }
+        etat_fiche: { type: string }
+        etat_constate: { type: string }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        photo_chemin: { type: string, nullable: true }
+        ecart_detecte: { type: boolean }
+        agent_id: { type: string, format: uuid }
+        date: { type: string, format: date-time }
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+  responses:
+    Interdit:
+      description: Rôle insuffisant
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Introuvable:
+      description: Ressource inconnue
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Indisponible:
+      description: Le service patrimoine ne répond pas (parcours de scan dégradé)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Validation:
+      description: Données invalides
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors: { type: object }

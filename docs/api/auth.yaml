@@ -1,0 +1,179 @@
+openapi: 3.0.3
+info:
+  title: KOFFR-IX — service auth
+  version: 1.0.0
+  description: |
+    Comptes, structures et jetons JWT. Seul le service `auth` délivre les jetons ;
+    les autres services les vérifient eux-mêmes avec le secret partagé `JWT_SECRET`.
+servers:
+  - url: http://localhost:8080/api/auth
+    description: Via la passerelle Nginx
+paths:
+  /login:
+    post:
+      summary: Connexion
+      description: |
+        Message générique « Identifiants incorrects. » en cas d'échec (jamais d'indication
+        sur le champ fautif). Le jeton dure 15 minutes et contient `sub`, `name`, `role`,
+        `structure_id`, `ministere_code`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Jeton délivré
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  token_type: { type: string, example: Bearer }
+                  expires_in: { type: integer, example: 900 }
+                  utilisateur:
+                    $ref: '#/components/schemas/Profil'
+        '401':
+          $ref: '#/components/responses/Erreur'
+        '422':
+          $ref: '#/components/responses/Validation'
+  /refresh:
+    post:
+      summary: Renouveler le jeton
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Nouveau jeton
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+                  token_type: { type: string }
+                  expires_in: { type: integer }
+        '401':
+          $ref: '#/components/responses/Erreur'
+  /logout:
+    post:
+      summary: Déconnexion (blackliste le jeton courant)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Déconnecté
+        '401':
+          $ref: '#/components/responses/Erreur'
+  /me:
+    get:
+      summary: Profil du compte connecté
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Profil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profil'
+        '401':
+          $ref: '#/components/responses/Erreur'
+  /structures:
+    get:
+      summary: Structures (id et nom uniquement)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: ids
+          in: query
+          description: Liste d'UUID séparés par des virgules (appel groupé)
+          schema: { type: string }
+      responses:
+        '200':
+          description: Structures
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    nom: { type: string }
+                    code: { type: string }
+        '401':
+          $ref: '#/components/responses/Erreur'
+  /users:
+    get:
+      summary: Comptes (identifiant et nom uniquement)
+      description: Aucune adresse e-mail, aucun rôle, aucun mot de passe.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Comptes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string, format: uuid }
+                    name: { type: string }
+        '401':
+          $ref: '#/components/responses/Erreur'
+  /ping:
+    get:
+      summary: Disponibilité du service
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Profil:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        role:
+          type: string
+          enum: [admin, comptable_matieres, agent_patrimoine, responsable_service, controleur]
+        structure_id: { type: string, format: uuid, nullable: true }
+        structure_nom: { type: string, nullable: true }
+        ministere_code: { type: string, nullable: true, example: SAN }
+  responses:
+    Erreur:
+      description: Non authentifié ou identifiants incorrects
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+    Validation:
+      description: Données invalides
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: { type: string }
