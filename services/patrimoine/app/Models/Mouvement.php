@@ -43,5 +43,13 @@ class Mouvement extends Model
         return $this->belongsTo(Bien::class);
     }
 
+    /**
+     * Décision de validation (une seule par mouvement).
+     */
+    public function validation()
+    {
+        return $this->hasOne(ValidationMouvement::class);
+    }
+
     public static array $types = ['affectation', 'transfert', 'maintenance', 'sortie'];
 }

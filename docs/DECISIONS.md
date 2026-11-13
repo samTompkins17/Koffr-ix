@@ -175,3 +175,24 @@ et les procès-verbaux ne sont plus des maquettes.
 - La matrice des rôles de la page Administration garde ses lignes † (validation d'un transfert,
   traitement d'un écart, PV, journal) ; journal et PV étant désormais codés, leurs lignes seront
   mises à jour lors de l'étape suivante (validation, traitement d'écart, création de comptes).
+
+## 21. Validation, traitement d'écart et création de comptes
+
+Trois écrans d'écriture issus de l'extension de périmètre (AGENTS.md, 13 nov. 2026).
+
+- **Validation d'un transfert** : `mouvements` et `controles` restant en ajout seul, la décision
+  n'écrit jamais dans le mouvement. Une table `validations_mouvement` (ajout seul, une ligne par
+  mouvement) enregistre `validee` ou `refusee` avec son auteur et son motif. Une affectation ou un
+  transfert est créé `en_attente` ; la structure du bien n'est mise à jour qu'à la validation, dans
+  une transaction avec la décision. Le statut affiché (`statut_effectif`) est calculé à la lecture :
+  décision si elle existe, statut initial sinon. Une sortie et une maintenance restent immédiates.
+  Seul le rôle `responsable_service` peut décider ; un second appel renvoie 409.
+- **Traitement d'un écart** : table `traitements_ecart` (ajout seul, un traitement par contrôle)
+  avec l'action (régularisé, réformé, main levée, autre), le commentaire et l'auteur. Le constat
+  d'origine n'est jamais modifié ; la liste affiche la décision, son auteur et sa date, et l'export
+  CSV ajoute une colonne « Traitement ». Réservé au comptable ; le contrôleur reste en lecture.
+- **Création de comptes et de structures** : deux routes d'auth réservées à l'administrateur.
+  Le mot de passe est haché par le cast du modèle et n'est jamais renvoyé ni journalisé ; l'action
+  `creation_compte` / `creation_structure` est tracée dans le journal d'auth. La matrice des rôles
+  de la page Administration ne porte plus de lignes « maquette » : les droits affichés
+  correspondent aux contrôles réellement appliqués par les services.

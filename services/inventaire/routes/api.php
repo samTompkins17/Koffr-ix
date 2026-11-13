@@ -25,6 +25,10 @@ Route::middleware('jwt')->group(function () {
         Route::get('/campagnes/{id}/ecarts', [ControleController::class, 'ecarts']);
     });
 
+    // Traitement d'un écart : comptable des matières uniquement.
+    Route::post('/ecarts/{id}/traitement', [ControleController::class, 'traiter'])
+        ->middleware('role:comptable_matieres');
+
     // Scan de contrôle et constat : agent du patrimoine uniquement.
     Route::middleware('role:agent_patrimoine')->group(function () {
         Route::get('/controles/bien/{code}', [ControleController::class, 'parCode']);

@@ -16,6 +16,8 @@ Route::middleware('jwt')->group(function () {
     Route::get('/users', [AuthController::class, 'users']);
     Route::get('/hierarchie', [AuthController::class, 'hierarchie']);
     Route::get('/annuaire', [AuthController::class, 'annuaire'])->middleware('role:admin');
+    Route::post('/comptes', [AuthController::class, 'creerCompte'])->middleware('role:admin');
+    Route::post('/structures', [AuthController::class, 'creerStructure'])->middleware('role:admin');
     Route::get('/journal', [JournalAuditController::class, 'index'])
         ->middleware('role:admin,controleur');
 });

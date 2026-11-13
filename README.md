@@ -104,7 +104,8 @@ Les trois premiers comptes sont proposés sur l'écran de connexion.
    Le QR code encode `http://localhost:8080/verifier/PAT-…`.
 4. **Transférer le bien** : fiche → « Transférer le bien », ou menu « Affectations et transferts ».
    Choisir le bien, le type (affectation, transfert, maintenance, sortie), la destination et le motif.
-   La structure du bien est mise à jour et le mouvement apparaît dans l'historique.
+   Le mouvement est en attente : le responsable de service le valide (menu « Affectations et transferts »),
+   et la structure du bien change à ce moment-là.
 5. **Ouvrir une campagne** : « Inventaire » → formulaire « Ouvrir une campagne » en bas de page.
 6. **Contrôler par scan** : se connecter avec `agent@koffr.local`, « Contrôle par scan »,
    saisir le code (ou scanner le QR code au téléphone), choisir l'état constaté « ● Hors service ».
@@ -114,7 +115,8 @@ Les trois premiers comptes sont proposés sur l'écran de connexion.
 8. **Vérifier publiquement** : ouvrir `http://localhost:8080/verifier` sans être connecté,
    puis saisir le code (ou ouvrir directement `http://localhost:8080/verifier/<code>`).
 9. **Administration** : se connecter avec `admin@koffr.local`, menu « Utilisateurs et rôles » :
-   comptes, matrice des droits et structures (biens rattachés, responsable). Lecture seule.
+   comptes, matrice des droits et structures (biens rattachés, responsable), avec les formulaires
+   de création d'un compte et d'une structure.
 10. **Carte** : menu « Carte » : les biens géolocalisés, avec leur fiche en lien.
 11. **Vue nationale** : menu « Vue nationale » : compteurs par ministère, taux d'inventaire et écarts.
 12. **Procès-verbaux** : menu « Procès-verbaux » → « Générer le PV » (inventaire d'une campagne).
@@ -142,6 +144,8 @@ Toutes les réponses d'erreur suivent `{"message": "...", "errors": {...}}` avec
 | GET | `/api/auth/structures?ids=` | id et nom des structures |
 | GET | `/api/auth/users?ids=` | id et nom des comptes (rien d'autre) |
 | GET | `/api/auth/hierarchie` | structures (id, nom, code, type, parent) pour la vue nationale |
+| POST | `/api/auth/comptes` | admin (création d'un compte) |
+| POST | `/api/auth/structures` | admin (création d'une structure) |
 | GET | `/api/auth/annuaire` | admin (page Administration : comptes et structures, sans e-mail) |
 | GET | `/api/auth/ping` | disponibilité |
 
@@ -158,6 +162,9 @@ Toutes les réponses d'erreur suivent `{"message": "...", "errors": {...}}` avec
 | GET | `/api/patrimoine/biens/{id}/etiquette` | étiquette imprimable |
 | GET/POST | `/api/patrimoine/biens/{id}/mouvements` | lecture tous ; écriture comptable, responsable |
 | GET | `/api/patrimoine/mouvements/recents?limite=` | tous (derniers mouvements, avec code du bien) |
+| GET | `/api/patrimoine/mouvements/en-attente` | admin, comptable, responsable |
+| POST | `/api/patrimoine/mouvements/{id}/valider` | responsable (met à jour la structure) |
+| POST | `/api/patrimoine/mouvements/{id}/refuser` | responsable |
 | GET | `/api/patrimoine/public/biens/{code}` | **sans authentification** (vérification) |
 | GET | `/api/patrimoine/stats` | compteurs du tableau de bord |
 
@@ -171,6 +178,7 @@ Toutes les réponses d'erreur suivent `{"message": "...", "errors": {...}}` avec
 | GET | `/api/inventaire/campagnes/{id}/controles` | tous |
 | GET | `/api/inventaire/campagnes/{id}/ecarts` | comptable, contrôleur (lecture seule) |
 | GET | `/api/inventaire/ecarts?campagne_id=` | comptable, contrôleur (tous les écarts) |
+| POST | `/api/inventaire/ecarts/{id}/traitement` | comptable (décision documentée) |
 | GET | `/api/inventaire/controles/bien/{code}` | agent (fiche + dernier état connu) |
 | POST | `/api/inventaire/controles` | agent (détecte l'écart, 409 si déjà contrôlé) |
 

@@ -4,6 +4,7 @@
 
 @section('contenu')
     @php
+        $role = session('utilisateur.role');
         $typeChoisi = old('type', request()->query('type', 'transfert'));
         $types = [
             'affectation' => 'Affectation',
@@ -11,12 +12,82 @@
             'maintenance' => 'Maintenance',
             'sortie' => 'Sortie',
         ];
+        $libellesTypes = $types;
     @endphp
 
     <div class="mb-6">
         <h1 class="text-3xl font-extrabold">Affectations et transferts</h1>
         <p class="mt-1 text-gray-600">Chaque mouvement est ajouté à l’historique du bien avec sa date et son auteur.</p>
     </div>
+
+    @if (count($enAttente) > 0)
+        <section class="mb-6 overflow-hidden rounded-xl border border-jaune bg-white">
+            <div class="border-b border-gray-200 bg-yellow-50 px-6 py-4">
+                <h2 class="text-lg font-bold">En attente de validation ({{ count($enAttente) }})</h2>
+                <p class="text-sm text-gray-700">
+                    La structure du bien ne change qu’après la décision du responsable de service.
+                </p>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="text-left text-xs uppercase tracking-wide text-gray-600">
+                        <tr class="border-b border-gray-200">
+                            <th class="px-6 py-3">Bien</th>
+                            <th class="px-6 py-3">Mouvement</th>
+                            <th class="px-6 py-3">Motif</th>
+                            <th class="px-6 py-3">Demandé par</th>
+                            <th class="px-6 py-3">Date</th>
+                            <th class="px-6 py-3 text-right">Décision</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($enAttente as $mouvement)
+                            <tr class="border-b border-gray-100 last:border-0">
+                                <td class="px-6 py-4">
+                                    <a href="{{ route('biens.fiche', $mouvement['bien_id']) }}" class="font-mono text-xs font-semibold text-vert underline">
+                                        {{ $mouvement['bien_code'] ?? $mouvement['bien_id'] }}
+                                    </a>
+                                    <span class="block">{{ $mouvement['bien_designation'] ?? '' }}</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <span class="font-semibold">{{ $libellesTypes[$mouvement['type']] ?? $mouvement['type'] }}</span>
+                                    <span class="block text-xs text-gray-600">
+                                        {{ $structures[$mouvement['structure_origine_id'] ?? ''] ?? '—' }}
+                                        → {{ $structures[$mouvement['structure_destination_id'] ?? ''] ?? '—' }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-gray-700">{{ $mouvement['motif'] }}</td>
+                                <td class="px-6 py-4 text-gray-700">{{ $personnes[$mouvement['auteur_id']] ?? '—' }}</td>
+                                <td class="px-6 py-4 text-gray-600">{{ \Illuminate\Support\Carbon::parse($mouvement['date'])->format('d/m/Y') }}</td>
+                                <td class="px-6 py-4">
+                                    @if ($role === 'responsable_service')
+                                        <div class="flex justify-end gap-2">
+                                            <form method="POST" action="{{ route('transferts.valider', $mouvement['id']) }}">
+                                                @csrf
+                                                <button type="submit" class="rounded-lg bg-vert px-3 py-2 text-xs font-semibold text-white hover:bg-[#00543F]">
+                                                    Valider
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="{{ route('transferts.refuser', $mouvement['id']) }}">
+                                                @csrf
+                                                <input type="hidden" name="motif" value="Refusé par le responsable de service">
+                                                <button type="submit" class="rounded-lg border border-rouge px-3 py-2 text-xs font-semibold text-rouge hover:bg-red-50">
+                                                    Refuser
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @else
+                                        <span class="flex justify-end text-xs font-semibold text-amber-700">● En attente</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    @endif
 
     <form method="GET" action="{{ route('transferts.index') }}" class="mb-4 rounded-xl border border-gray-200 bg-white px-6 py-5">
         <label for="bien_choisi" class="mb-1.5 block text-sm font-semibold">Bien concerné *</label>
@@ -82,7 +153,8 @@
             </div>
 
             <div class="mt-5 rounded-lg bg-green-50 px-4 py-3 text-sm text-gray-800">
-                Le mouvement est enregistré immédiatement et la structure du bien est mise à jour. Une sortie passe le bien en « sorti ».
+                Une affectation ou un transfert attend la validation du responsable : la structure du bien ne change qu’à ce moment-là.
+                Une sortie et une maintenance sont enregistrées immédiatement.
             </div>
 
             <div class="mt-6 flex flex-wrap gap-3">
@@ -101,7 +173,7 @@
             <h2 class="text-lg font-bold">Après enregistrement</h2>
             <ul class="mt-3 space-y-2 text-gray-700">
                 <li>✓ Une ligne d’historique datée et signée est ajoutée au bien.</li>
-                <li>✓ La structure du bien change pour une affectation ou un transfert.</li>
+                <li>✓ Une affectation ou un transfert passe en attente de validation.</li>
                 <li>✓ Une sortie retire le bien de l’inventaire actif.</li>
                 <li>✓ Aucune ligne ne peut être supprimée ni modifiée.</li>
             </ul>

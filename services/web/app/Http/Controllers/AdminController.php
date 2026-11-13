@@ -9,7 +9,7 @@ class AdminController extends ControleurKoffr
     private const ONGLETS = ['utilisateurs', 'roles', 'structures'];
 
     /**
-     * Page « Utilisateurs, rôles et structures » : annuaire en lecture seule.
+     * Page « Utilisateurs, rôles et structures » : annuaire et création.
      * Réservée à l'administrateur ; l'API refait le contrôle de rôle.
      */
     public function index(Request $request)
@@ -63,6 +63,81 @@ class AdminController extends ControleurKoffr
     }
 
     /**
+     * Création d'un compte. Le mot de passe n'est jamais renvoyé ni journalisé :
+     * l'API le hache avant l'enregistrement.
+     */
+    public function creerCompte(Request $request)
+    {
+        if (! $this->roleAutorise(['admin'])) {
+            return redirect()->route('tableau')->with('erreur', 'Cette page est réservée à l’administrateur.');
+        }
+
+        $donnees = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'password' => ['required', 'string', 'min:8'],
+            'role' => ['required', 'string'],
+            'structure_id' => ['required', 'uuid'],
+        ], [
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+        ]);
+
+        $reponse = $this->api()->post('/api/auth/comptes', $donnees);
+
+        if ($reponse->status() === 401) {
+            return $this->sessionExpiree();
+        }
+
+        if ($reponse->status() === 422) {
+            return redirect()->route('admin.index', ['onglet' => 'utilisateurs'])
+                ->withInput()->withErrors($reponse->json('errors') ?? []);
+        }
+
+        if (! $reponse->successful()) {
+            return back()->withInput()->with('erreur', $this->messageErreur($reponse));
+        }
+
+        return redirect()->route('admin.index', ['onglet' => 'utilisateurs'])
+            ->with('succes', 'Compte créé pour '.$reponse->json('name').'.');
+    }
+
+    /**
+     * Création d'une structure (ministère, service ou établissement).
+     */
+    public function creerStructure(Request $request)
+    {
+        if (! $this->roleAutorise(['admin'])) {
+            return redirect()->route('tableau')->with('erreur', 'Cette page est réservée à l’administrateur.');
+        }
+
+        $donnees = $request->validate([
+            'nom' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:30'],
+            'type' => ['required', 'in:ministere,service,etablissement'],
+            'region' => ['nullable', 'string', 'max:100'],
+            'parent_id' => ['nullable', 'uuid'],
+        ]);
+
+        $reponse = $this->api()->post('/api/auth/structures', $donnees);
+
+        if ($reponse->status() === 401) {
+            return $this->sessionExpiree();
+        }
+
+        if ($reponse->status() === 422) {
+            return redirect()->route('admin.index', ['onglet' => 'structures'])
+                ->withInput()->withErrors($reponse->json('errors') ?? []);
+        }
+
+        if (! $reponse->successful()) {
+            return back()->withInput()->with('erreur', $this->messageErreur($reponse));
+        }
+
+        return redirect()->route('admin.index', ['onglet' => 'structures'])
+            ->with('succes', 'Structure « '.$reponse->json('nom').' » créée.');
+    }
+
+    /**
      * Matrice des droits (AGENTS.md §6). Les lignes `maquette` décrivent des
      * droits prévus par les écrans de démonstration mais non codés.
      */
@@ -80,7 +155,7 @@ class AdminController extends ControleurKoffr
                 'admin' => false, 'comptable_matieres' => true, 'agent_patrimoine' => false,
                 'responsable_service' => true, 'controleur' => false,
             ]],
-            ['fonctionnalite' => 'Validation d’un transfert', 'maquette' => true, 'droits' => [
+            ['fonctionnalite' => 'Validation d’un transfert', 'maquette' => false, 'droits' => [
                 'admin' => false, 'comptable_matieres' => false, 'agent_patrimoine' => false,
                 'responsable_service' => true, 'controleur' => false,
             ]],
@@ -88,15 +163,15 @@ class AdminController extends ControleurKoffr
                 'admin' => false, 'comptable_matieres' => false, 'agent_patrimoine' => true,
                 'responsable_service' => false, 'controleur' => false,
             ]],
-            ['fonctionnalite' => 'Traitement d’un écart', 'maquette' => true, 'droits' => [
+            ['fonctionnalite' => 'Traitement d’un écart', 'maquette' => false, 'droits' => [
                 'admin' => false, 'comptable_matieres' => true, 'agent_patrimoine' => false,
                 'responsable_service' => false, 'controleur' => false,
             ]],
-            ['fonctionnalite' => 'Génération de procès-verbaux officiels', 'maquette' => true, 'droits' => [
-                'admin' => false, 'comptable_matieres' => true, 'agent_patrimoine' => false,
+            ['fonctionnalite' => 'Génération de procès-verbaux officiels', 'maquette' => false, 'droits' => [
+                'admin' => true, 'comptable_matieres' => true, 'agent_patrimoine' => false,
                 'responsable_service' => true, 'controleur' => false,
             ]],
-            ['fonctionnalite' => 'Journal d’audit complet', 'maquette' => true, 'droits' => [
+            ['fonctionnalite' => 'Journal d’audit complet', 'maquette' => false, 'droits' => [
                 'admin' => true, 'comptable_matieres' => false, 'agent_patrimoine' => false,
                 'responsable_service' => false, 'controleur' => 'lecture',
             ]],

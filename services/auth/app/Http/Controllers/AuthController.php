@@ -6,6 +6,7 @@ use App\Models\Structure;
 use App\Models\User;
 use App\Support\Journal;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -106,6 +107,57 @@ class AuthController extends Controller
             'nom' => $s->nom,
             'code' => $s->code,
         ]);
+    }
+
+    /**
+     * Création d'un compte par l'administrateur. Le mot de passe est haché
+     * par le cast du modèle ; aucun mot de passe n'est journalisé.
+     */
+    public function creerCompte(Request $request)
+    {
+        $donnees = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+            'role' => ['required', Rule::in(['admin', 'comptable_matieres', 'agent_patrimoine', 'responsable_service', 'controleur'])],
+            'structure_id' => ['required', 'uuid', 'exists:structures,id'],
+            'actif' => ['nullable', 'boolean'],
+        ]);
+
+        $compte = User::create([
+            'name' => $donnees['name'],
+            'email' => $donnees['email'],
+            'password' => $donnees['password'],
+            'role' => $donnees['role'],
+            'structure_id' => $donnees['structure_id'],
+            'actif' => (bool) ($donnees['actif'] ?? true),
+        ]);
+
+        $acteur = $request->attributes->get('utilisateur');
+        Journal::ecrire($acteur['id'], 'creation_compte', $compte->email, $compte->name.' ('.$compte->role.')');
+
+        return response()->json($this->profil($compte->load('structure')), 201);
+    }
+
+    /**
+     * Création d'une structure par l'administrateur (ministère ou service).
+     */
+    public function creerStructure(Request $request)
+    {
+        $donnees = $request->validate([
+            'nom' => ['required', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:30', 'unique:structures,code'],
+            'type' => ['required', Rule::in(['ministere', 'service', 'etablissement'])],
+            'region' => ['nullable', 'string', 'max:100'],
+            'parent_id' => ['nullable', 'uuid', 'exists:structures,id'],
+        ]);
+
+        $structure = Structure::create($donnees);
+
+        $acteur = $request->attributes->get('utilisateur');
+        Journal::ecrire($acteur['id'], 'creation_structure', $structure->code, $structure->nom);
+
+        return response()->json($structure, 201);
     }
 
     /**

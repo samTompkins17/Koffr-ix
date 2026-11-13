@@ -36,24 +36,93 @@ class MouvementTest extends TestCase
         return Bien::findOrFail($reponse->json('id'));
     }
 
-    public function test_un_transfert_cree_le_mouvement_et_change_la_structure(): void
+    public function test_un_transfert_attend_la_validation_puis_change_la_structure(): void
     {
         $bien = $this->creerBien();
 
-        $this->withHeader('Authorization', 'Bearer '.$this->jeton())
+        $reponse = $this->withHeader('Authorization', 'Bearer '.$this->jeton())
             ->postJson('/api/biens/'.$bien->id.'/mouvements', [
                 'type' => 'transfert',
                 'structure_destination_id' => self::DESTINATION,
                 'motif' => 'Réorganisation du service',
-            ])
-            ->assertStatus(201)
+            ]);
+
+        $reponse->assertStatus(201)
             ->assertJsonPath('structure_origine_id', self::ORIGINE)
             ->assertJsonPath('structure_destination_id', self::DESTINATION)
-            ->assertJsonPath('statut_validation', 'valide');
+            ->assertJsonPath('statut_validation', 'en_attente')
+            ->assertJsonPath('statut_effectif', 'en_attente');
 
-        $bien->refresh();
-        $this->assertSame(self::DESTINATION, $bien->structure_id);
-        $this->assertCount(1, $bien->mouvements);
+        // Tant que le responsable n'a pas validé, la structure ne change pas.
+        $this->assertSame(self::ORIGINE, $bien->refresh()->structure_id);
+
+        $mouvementId = $reponse->json('id');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->jeton('responsable_service'))
+            ->postJson('/api/mouvements/'.$mouvementId.'/valider')
+            ->assertOk()
+            ->assertJsonPath('statut_effectif', 'valide');
+
+        $this->assertSame(self::DESTINATION, $bien->refresh()->structure_id);
+        $this->assertDatabaseCount('validations_mouvement', 1);
+    }
+
+    public function test_un_refus_ne_change_pas_la_structure(): void
+    {
+        $bien = $this->creerBien();
+
+        $mouvementId = $this->withHeader('Authorization', 'Bearer '.$this->jeton())
+            ->postJson('/api/biens/'.$bien->id.'/mouvements', [
+                'type' => 'affectation',
+                'structure_destination_id' => self::DESTINATION,
+                'motif' => 'Affectation proposée',
+            ])
+            ->json('id');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->jeton('responsable_service'))
+            ->postJson('/api/mouvements/'.$mouvementId.'/refuser', ['motif' => 'Effectif insuffisant'])
+            ->assertOk()
+            ->assertJsonPath('statut_effectif', 'refuse');
+
+        $this->assertSame(self::ORIGINE, $bien->refresh()->structure_id);
+    }
+
+    public function test_seul_le_responsable_valide_un_mouvement(): void
+    {
+        $bien = $this->creerBien();
+
+        $mouvementId = $this->withHeader('Authorization', 'Bearer '.$this->jeton())
+            ->postJson('/api/biens/'.$bien->id.'/mouvements', [
+                'type' => 'transfert',
+                'structure_destination_id' => self::DESTINATION,
+                'motif' => 'Réorganisation',
+            ])
+            ->json('id');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->jeton('agent_patrimoine'))
+            ->postJson('/api/mouvements/'.$mouvementId.'/valider')
+            ->assertStatus(403);
+    }
+
+    public function test_un_mouvement_ne_peut_etre_valide_deux_fois(): void
+    {
+        $bien = $this->creerBien();
+
+        $mouvementId = $this->withHeader('Authorization', 'Bearer '.$this->jeton())
+            ->postJson('/api/biens/'.$bien->id.'/mouvements', [
+                'type' => 'transfert',
+                'structure_destination_id' => self::DESTINATION,
+                'motif' => 'Réorganisation',
+            ])
+            ->json('id');
+
+        $this->withHeader('Authorization', 'Bearer '.$this->jeton('responsable_service'))
+            ->postJson('/api/mouvements/'.$mouvementId.'/valider')
+            ->assertOk();
+
+        $this->withHeader('Authorization', 'Bearer '.$this->jeton('responsable_service'))
+            ->postJson('/api/mouvements/'.$mouvementId.'/valider')
+            ->assertStatus(409);
     }
 
     public function test_un_transfert_sans_destination_est_refuse(): void

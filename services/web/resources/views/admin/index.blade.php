@@ -20,11 +20,10 @@
             <p class="mt-1 text-gray-600">Réservé à l’administrateur. Les agents se limitent à l’identité professionnelle.</p>
         </div>
 
-        {{-- Création de comptes : maquette seulement (AGENTS.md §2). --}}
-        <button type="button" disabled aria-disabled="true" title="Fonction de maquette, non implémentée"
-                class="cursor-not-allowed rounded-lg bg-vert/60 px-5 py-2.5 text-sm font-semibold text-white">
+        <a href="{{ route('admin.index', ['onglet' => 'utilisateurs']) }}#creer-compte"
+           class="rounded-lg bg-vert px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00543F]">
             + Créer un compte
-        </button>
+        </a>
     </div>
 
     <nav class="mb-5 flex flex-wrap gap-6 border-b border-gray-300 text-sm" aria-label="Sections de l’administration">
@@ -38,6 +37,56 @@
     </nav>
 
     @if ($onglet === 'utilisateurs')
+        <section id="creer-compte" class="mb-5 rounded-xl border border-gray-200 bg-white px-6 py-5">
+            <h2 class="text-lg font-bold">Créer un compte</h2>
+            <p class="text-sm text-gray-600">Le compte peut se connecter dès sa création. Le mot de passe est haché, jamais journalisé.</p>
+
+            <form method="POST" action="{{ route('admin.comptes') }}" class="mt-4 grid gap-4 sm:grid-cols-2">
+                @csrf
+                <div>
+                    <label for="name" class="mb-1.5 block text-sm font-semibold">Nom *</label>
+                    <input id="name" name="name" required value="{{ old('name') }}" placeholder="Prénom N."
+                           class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                    @error('name')<p class="mt-1 text-sm text-rouge">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="email" class="mb-1.5 block text-sm font-semibold">Adresse email *</label>
+                    <input id="email" name="email" type="email" required value="{{ old('email') }}" placeholder="prenom.nom@ministere.tg"
+                           class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                    @error('email')<p class="mt-1 text-sm text-rouge">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="password" class="mb-1.5 block text-sm font-semibold">Mot de passe provisoire *</label>
+                    <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password"
+                           class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                    @error('password')<p class="mt-1 text-sm text-rouge">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="role" class="mb-1.5 block text-sm font-semibold">Rôle *</label>
+                    <select id="role" name="role" required class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                        @foreach ($roles as $code => $libelle)
+                            <option value="{{ $code }}" @selected(old('role') === $code)>{{ $libelle }}</option>
+                        @endforeach
+                    </select>
+                    @error('role')<p class="mt-1 text-sm text-rouge">{{ $message }}</p>@enderror
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="structure_id" class="mb-1.5 block text-sm font-semibold">Structure *</label>
+                    <select id="structure_id" name="structure_id" required class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                        @foreach ($structures as $structure)
+                            <option value="{{ $structure['id'] }}" @selected(old('structure_id') === $structure['id'])>{{ $structure['nom'] }}</option>
+                        @endforeach
+                    </select>
+                    @error('structure_id')<p class="mt-1 text-sm text-rouge">{{ $message }}</p>@enderror
+                </div>
+                <div class="sm:col-span-2">
+                    <button type="submit" class="rounded-lg bg-vert px-6 py-3 text-sm font-bold text-white hover:bg-[#00543F]">
+                        Créer le compte
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <section class="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -87,9 +136,7 @@
                     <tbody>
                         @foreach ($matrice as $ligne)
                             <tr class="border-b border-gray-100 last:border-0">
-                                <td class="px-6 py-4">
-                                    {{ $ligne['fonctionnalite'] }}@if ($ligne['maquette'])<span class="text-gray-400" title="Droit prévu par la maquette, écran non codé"> †</span>@endif
-                                </td>
+                                <td class="px-6 py-4">{{ $ligne['fonctionnalite'] }}</td>
                                 @foreach (array_keys($colonnes) as $role)
                                     @php $droit = $ligne['droits'][$role] ?? false; @endphp
                                     <td class="px-4 py-4 text-center">
@@ -110,11 +157,59 @@
         </section>
 
         <p class="mt-3 text-xs text-gray-500">
-            † Droit prévu par les maquettes, dont l’écran n’est pas codé dans cette démonstration.
+            Les droits affichés correspondent aux contrôles appliqués par les services.
         </p>
     @endif
 
     @if ($onglet === 'structures')
+        <section id="creer-structure" class="mb-5 rounded-xl border border-gray-200 bg-white px-6 py-5">
+            <h2 class="text-lg font-bold">Créer une structure</h2>
+            <p class="text-sm text-gray-600">Ministère, service rattaché ou établissement. Le code d’un ministère sert de préfixe aux codes patrimoine.</p>
+
+            <form method="POST" action="{{ route('admin.structures') }}" class="mt-4 grid gap-4 sm:grid-cols-2">
+                @csrf
+                <div>
+                    <label for="nom" class="mb-1.5 block text-sm font-semibold">Nom *</label>
+                    <input id="nom" name="nom" required value="{{ old('nom') }}" placeholder="Direction des affaires financières"
+                           class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                    @error('nom')<p class="mt-1 text-sm text-rouge">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="code" class="mb-1.5 block text-sm font-semibold">Code *</label>
+                    <input id="code" name="code" required value="{{ old('code') }}" placeholder="SAN-DAF"
+                           class="w-full rounded-lg border border-gray-400 px-3 py-2.5 font-mono text-sm">
+                    @error('code')<p class="mt-1 text-sm text-rouge">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label for="type" class="mb-1.5 block text-sm font-semibold">Type *</label>
+                    <select id="type" name="type" required class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                        <option value="ministere" @selected(old('type') === 'ministere')>Ministère</option>
+                        <option value="service" @selected(old('type', 'service') === 'service')>Service</option>
+                        <option value="etablissement" @selected(old('type') === 'etablissement')>Établissement</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="region" class="mb-1.5 block text-sm font-semibold">Région</label>
+                    <input id="region" name="region" value="{{ old('region') }}" placeholder="Maritime"
+                           class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                </div>
+                <div class="sm:col-span-2">
+                    <label for="parent_id" class="mb-1.5 block text-sm font-semibold">Structure parente</label>
+                    <select id="parent_id" name="parent_id" class="w-full rounded-lg border border-gray-400 px-3 py-2.5 text-sm">
+                        <option value="">— Aucune (ministère de rattachement) —</option>
+                        @foreach ($structures as $structure)
+                            <option value="{{ $structure['id'] }}" @selected(old('parent_id') === $structure['id'])>{{ $structure['nom'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sm:col-span-2">
+                    <button type="submit" class="rounded-lg bg-vert px-6 py-3 text-sm font-bold text-white hover:bg-[#00543F]">
+                        Créer la structure
+                    </button>
+                </div>
+            </form>
+        </section>
+
         <section class="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">

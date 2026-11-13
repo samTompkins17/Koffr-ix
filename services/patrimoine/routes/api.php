@@ -30,8 +30,17 @@ Route::middleware('jwt')->group(function () {
         Route::put('/biens/{id}', [BienController::class, 'update']);
     });
 
+    Route::get('/mouvements/en-attente', [MouvementController::class, 'enAttente'])
+        ->middleware('role:admin,comptable_matieres,responsable_service');
+
     // Déclaration de mouvement : comptable et responsable de service.
     Route::middleware('role:comptable_matieres,responsable_service')->group(function () {
         Route::post('/biens/{id}/mouvements', [MouvementController::class, 'store']);
+    });
+
+    // Validation d'un transfert ou d'une affectation : responsable uniquement.
+    Route::middleware('role:responsable_service')->group(function () {
+        Route::post('/mouvements/{id}/valider', [MouvementController::class, 'valider']);
+        Route::post('/mouvements/{id}/refuser', [MouvementController::class, 'refuser']);
     });
 });

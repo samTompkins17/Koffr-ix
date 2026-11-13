@@ -8,7 +8,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class EcartController extends ControleurKoffr
 {
     /**
-     * Page « Écarts et rapports » : tous les écarts, en lecture seule.
+     * Page « Écarts et rapports » : écarts de toutes les campagnes, avec leur
+     * traitement éventuel. Le comptable peut documenter une décision.
      */
     public function index(Request $request)
     {
@@ -43,11 +44,54 @@ class EcartController extends ControleurKoffr
             'campagnes' => $campagnes,
             'campagneFiltree' => $campagneFiltree,
             'biens' => $this->biensParIds(array_column($ecarts, 'bien_id')),
-            'personnes' => $this->noms('/api/auth/users', array_column($ecarts, 'agent_id')),
+            'personnes' => $this->noms('/api/auth/users', array_merge(
+                array_column($ecarts, 'agent_id'),
+                array_column(array_filter(array_column($ecarts, 'traitement')), 'auteur_id'),
+            )),
             'totalBiens' => $totalBiens,
             'controles' => (int) $controles,
             'taux' => $totalBiens > 0 ? (int) round($controles / $totalBiens * 100) : 0,
+            'actions' => ['regularise' => 'Écart régularisé', 'reforme' => 'Bien réformé', 'main_levee' => 'Main levée', 'autre' => 'Autre décision'],
         ]);
+    }
+
+    /**
+     * Traitement d'un écart par le comptable : décision documentée, en ajout seul.
+     */
+    public function traiter(Request $request, string $controleId)
+    {
+        if (! $this->roleAutorise(['comptable_matieres'])) {
+            return redirect()->route('ecarts.index')
+                ->with('erreur', 'Seul le comptable des matières peut traiter un écart.');
+        }
+
+        $donnees = $request->validate([
+            'action' => ['required', 'in:regularise,reforme,main_levee,autre'],
+            'commentaire' => ['required', 'string', 'max:1000'],
+        ], [
+            'commentaire.required' => 'Décrivez la décision prise pour cet écart.',
+        ]);
+
+        $reponse = $this->api()->post('/api/inventaire/ecarts/'.$controleId.'/traitement', $donnees);
+
+        if ($reponse->status() === 401) {
+            return $this->sessionExpiree();
+        }
+
+        if ($reponse->status() === 409) {
+            return back()->with('erreur', 'Cet écart a déjà été traité.');
+        }
+
+        if ($reponse->status() === 422) {
+            return back()->withInput()->withErrors($reponse->json('errors') ?? [])
+                ->with('erreur', $this->messageErreur($reponse));
+        }
+
+        if (! $reponse->successful()) {
+            return back()->with('erreur', $this->messageErreur($reponse));
+        }
+
+        return back()->with('succes', 'Écart traité et documenté.');
     }
 
     /**
@@ -66,7 +110,7 @@ class EcartController extends ControleurKoffr
         return response()->streamDownload(function () use ($ecarts, $biens, $personnes) {
             $sortie = fopen('php://output', 'w');
             fwrite($sortie, "\xEF\xBB\xBF");
-            fputcsv($sortie, ['Code patrimoine', 'Désignation', 'État fiche', 'État constaté', 'Agent', 'Date'], ';');
+            fputcsv($sortie, ['Code patrimoine', 'Désignation', 'État fiche', 'État constaté', 'Agent', 'Date', 'Traitement'], ';');
 
             foreach ($ecarts as $ecart) {
                 $bien = $biens[$ecart['bien_id']] ?? null;
@@ -77,6 +121,7 @@ class EcartController extends ControleurKoffr
                     config('koffr.etats')[$ecart['etat_constate']]['libelle'] ?? $ecart['etat_constate'],
                     $personnes[$ecart['agent_id']] ?? '',
                     substr((string) $ecart['date'], 0, 10),
+                    $ecart['traitement']['action'] ?? 'Non traité',
                 ], ';');
             }
 

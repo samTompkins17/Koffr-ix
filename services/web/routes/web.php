@@ -45,6 +45,8 @@ Route::middleware(AssurerSession::class)->group(function () {
     // Affectations et transferts
     Route::get('/transferts', [TransfertController::class, 'index'])->name('transferts.index');
     Route::post('/transferts', [TransfertController::class, 'store'])->name('transferts.store');
+    Route::post('/transferts/{id}/valider', [TransfertController::class, 'valider'])->name('transferts.valider');
+    Route::post('/transferts/{id}/refuser', [TransfertController::class, 'refuser'])->name('transferts.refuser');
 
     // Campagnes d'inventaire
     Route::get('/campagnes', [CampagneController::class, 'index'])->name('campagnes.index');
@@ -53,6 +55,8 @@ Route::middleware(AssurerSession::class)->group(function () {
 
     // Administration (annuaire, lecture seule)
     Route::get('/administration', [AdminController::class, 'index'])->name('admin.index');
+    Route::post('/administration/comptes', [AdminController::class, 'creerCompte'])->name('admin.comptes');
+    Route::post('/administration/structures', [AdminController::class, 'creerStructure'])->name('admin.structures');
 
     // Écarts et rapports
     Route::get('/ecarts', [EcartController::class, 'index'])->name('ecarts.index');
@@ -60,6 +64,7 @@ Route::middleware(AssurerSession::class)->group(function () {
     // Journal d'audit (lecture seule)
     Route::get('/journal', [JournalController::class, 'index'])->name('journal.index');
     Route::get('/ecarts/export.csv', [EcartController::class, 'exportCsv'])->name('ecarts.export');
+    Route::post('/ecarts/{id}/traitement', [EcartController::class, 'traiter'])->name('ecarts.traiter');
     // Carte, vue nationale et procès-verbaux (lecture seule)
     Route::get('/carte', [CarteController::class, 'index'])->name('carte.index');
     Route::get('/vue-nationale', [VueNationaleController::class, 'index'])->name('vue-nationale.index');

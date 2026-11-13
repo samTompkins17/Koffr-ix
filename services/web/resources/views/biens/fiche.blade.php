@@ -107,7 +107,14 @@
                             {{ \Illuminate\Support\Carbon::parse($mouvement['date'])->format('d/m/Y') }} · demandé par {{ $personnes[$mouvement['auteur_id']] ?? '—' }}
                         </p>
                         <p class="text-sm text-gray-500">{{ $mouvement['motif'] }}</p>
-                        <p class="mt-1 text-xs font-semibold text-vert"><span aria-hidden="true">✓</span> Validé</p>
+                        @php $statutMouvement = $mouvement['statut_effectif'] ?? $mouvement['statut_validation']; @endphp
+                        @if ($statutMouvement === 'en_attente')
+                            <p class="mt-1 text-xs font-semibold text-amber-700"><span aria-hidden="true">●</span> En attente de validation</p>
+                        @elseif ($statutMouvement === 'refuse')
+                            <p class="mt-1 text-xs font-semibold text-rouge"><span aria-hidden="true">✕</span> Refusé</p>
+                        @else
+                            <p class="mt-1 text-xs font-semibold text-vert"><span aria-hidden="true">✓</span> Validé</p>
+                        @endif
                     </li>
                 @endforeach
 

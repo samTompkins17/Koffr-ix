@@ -141,4 +141,76 @@ class AuthTest extends TestCase
             ->getJson('/api/me')
             ->assertStatus(401);
     }
+
+    public function test_ladministrateur_cree_un_compte(): void
+    {
+        $admin = $this->connexion('admin@koffr.local');
+
+        $this->withHeader('Authorization', 'Bearer '.$admin)
+            ->postJson('/api/comptes', [
+                'name' => 'Nouvelle Agente',
+                'email' => 'nouvelle.agente@koffr.local',
+                'password' => 'motdepasse123',
+                'role' => 'agent_patrimoine',
+                'structure_id' => '00000000-0000-4000-8000-000000000004',
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('role', 'agent_patrimoine')
+            ->assertJsonPath('structure_nom', 'Services généraux');
+
+        // Le compte créé peut se connecter avec son mot de passe.
+        $this->postJson('/api/login', [
+            'email' => 'nouvelle.agente@koffr.local',
+            'password' => 'motdepasse123',
+        ])->assertOk();
+    }
+
+    public function test_un_email_deja_utilise_est_refuse(): void
+    {
+        $admin = $this->connexion('admin@koffr.local');
+
+        $this->withHeader('Authorization', 'Bearer '.$admin)
+            ->postJson('/api/comptes', [
+                'name' => 'Doublon',
+                'email' => 'comptable@koffr.local',
+                'password' => 'motdepasse123',
+                'role' => 'controleur',
+                'structure_id' => '00000000-0000-4000-8000-000000000001',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('email');
+    }
+
+    public function test_seul_ladministrateur_cree_des_comptes(): void
+    {
+        $comptable = $this->connexion('comptable@koffr.local');
+
+        $this->withHeader('Authorization', 'Bearer '.$comptable)
+            ->postJson('/api/comptes', [
+                'name' => 'Interdit',
+                'email' => 'interdit@koffr.local',
+                'password' => 'motdepasse123',
+                'role' => 'agent_patrimoine',
+                'structure_id' => '00000000-0000-4000-8000-000000000004',
+            ])
+            ->assertStatus(403);
+    }
+
+    public function test_ladministrateur_cree_une_structure(): void
+    {
+        $admin = $this->connexion('admin@koffr.local');
+
+        $this->withHeader('Authorization', 'Bearer '.$admin)
+            ->postJson('/api/structures', [
+                'nom' => 'Direction des affaires financières',
+                'code' => 'SAN-DAF',
+                'type' => 'service',
+                'region' => 'Maritime',
+                'parent_id' => '00000000-0000-4000-8000-000000000001',
+            ])
+            ->assertStatus(201)
+            ->assertJsonPath('code', 'SAN-DAF');
+
+        $this->assertDatabaseHas('structures', ['code' => 'SAN-DAF']);
+    }
 }

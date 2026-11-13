@@ -87,8 +87,15 @@
                                 <span class="block text-xs text-gray-500">{{ \Illuminate\Support\Str::limit($mouvement['motif'], 40) }}</span>
                             </td>
                             <td class="py-3 pr-3 text-gray-600">{{ $personnes[$mouvement['auteur_id']] ?? '—' }}</td>
-                            <td class="py-3 whitespace-nowrap text-xs font-semibold text-vert">
-                                <span aria-hidden="true">✓</span> Validé
+                            <td class="py-3 whitespace-nowrap text-xs font-semibold">
+                                @php $statut = $mouvement['statut_effectif'] ?? $mouvement['statut_validation']; @endphp
+                                @if ($statut === 'en_attente')
+                                    <span class="text-amber-700"><span aria-hidden="true">●</span> En attente</span>
+                                @elseif ($statut === 'refuse')
+                                    <span class="text-rouge"><span aria-hidden="true">✕</span> Refusé</span>
+                                @else
+                                    <span class="text-vert"><span aria-hidden="true">✓</span> Validé</span>
+                                @endif
                             </td>
                         </tr>
                     @empty

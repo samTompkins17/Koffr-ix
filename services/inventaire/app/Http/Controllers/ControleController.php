@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Campagne;
 use App\Models\Controle;
+use App\Models\TraitementEcart;
 use App\Support\Journal;
 use App\Support\PatrimoineClient;
 use Illuminate\Http\Request;
@@ -114,13 +115,53 @@ class ControleController extends Controller
      */
     public function tousLesEcarts(Request $request)
     {
-        $requete = Controle::where('ecart_detecte', true);
+        $requete = Controle::with('traitement')->where('ecart_detecte', true);
 
         if ($request->filled('campagne_id')) {
             $requete->where('campagne_id', $request->query('campagne_id'));
         }
 
         return response()->json($requete->orderByDesc('date')->get());
+    }
+
+    /**
+     * Traitement d'un écart par le comptable : une décision documentée,
+     * en ajout seul (le contrôle lui-même n'est jamais modifié).
+     */
+    public function traiter(Request $request, string $controleId)
+    {
+        $donnees = $request->validate([
+            'action' => ['required', Rule::in(array_keys(TraitementEcart::$actions))],
+            'commentaire' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $controle = Controle::find($controleId);
+
+        if (! $controle) {
+            return response()->json(['message' => 'Écart introuvable.'], 404);
+        }
+
+        if (! $controle->ecart_detecte) {
+            return response()->json(['message' => 'Ce constat ne présente aucun écart à traiter.'], 422);
+        }
+
+        if ($controle->traitement()->exists()) {
+            return response()->json(['message' => 'Cet écart a déjà été traité.'], 409);
+        }
+
+        $acteur = $request->attributes->get('utilisateur');
+
+        $traitement = TraitementEcart::create([
+            'controle_id' => $controle->id,
+            'auteur_id' => $acteur['id'],
+            'action' => $donnees['action'],
+            'commentaire' => $donnees['commentaire'],
+            'date' => now(),
+        ]);
+
+        Journal::ecrire($acteur['id'], 'ecart_traite', $controle->id, $donnees['action'].' : '.$donnees['commentaire']);
+
+        return response()->json($traitement, 201);
     }
 
     /**
@@ -131,7 +172,7 @@ class ControleController extends Controller
         Campagne::findOrFail($campagneId);
 
         return response()->json(
-            Controle::where('campagne_id', $campagneId)
+            Controle::with('traitement')->where('campagne_id', $campagneId)
                 ->where('ecart_detecte', true)
                 ->orderByDesc('date')
                 ->get()

@@ -44,5 +44,13 @@ class Controle extends Model
         static::deleting(fn () => throw new RuntimeException('Un contrôle est en ajout seul : il ne peut pas être supprimé.'));
     }
 
+    /**
+     * Traitement de l'écart (un seul, décidé par le comptable).
+     */
+    public function traitement()
+    {
+        return $this->hasOne(TraitementEcart::class);
+    }
+
     public static array $etatsConstates = ['bon', 'usage', 'hors_service', 'introuvable'];
 }
