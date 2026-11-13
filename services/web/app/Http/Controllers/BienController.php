@@ -15,6 +15,9 @@ class BienController extends ControleurKoffr
     {
         $filtres = $request->only(['q', 'categorie', 'etat', 'structure_id', 'page']);
 
+        // Deux présentations de la même liste, comme dans les maquettes.
+        $vue = $request->query('vue') === 'galerie' ? 'galerie' : 'tableau';
+
         $reponse = $this->api()->get('/api/patrimoine/biens', $filtres);
 
         if ($reponse->status() === 401) {
@@ -28,6 +31,7 @@ class BienController extends ControleurKoffr
         return view('biens.index', [
             'biens' => $biens,
             'filtres' => $filtres,
+            'vue' => $vue,
             'structures' => $this->noms('/api/auth/structures', array_column($biens['data'], 'structure_id')),
             'toutesStructures' => $this->api()->get('/api/auth/structures')->json() ?? [],
             'erreurApi' => $reponse->successful() ? null : 'La liste des biens est momentanément indisponible.',

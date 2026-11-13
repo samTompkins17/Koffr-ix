@@ -27,7 +27,16 @@ En cas de conflit, l'ordre de priorité est : ce fichier, puis le cahier des cha
 
 **À coder si le temps le permet, dans cet ordre** : vérification publique par QR code (page sans connexion), compteurs du tableau de bord, export CSV de la liste des biens.
 
-**Maquette seulement (ne pas coder)** : documents joints, carte, interface du journal d'audit, procès-verbaux, vue nationale, traitement d'un écart, mode hors ligne, validation d'un transfert par le responsable, création de comptes par l'administrateur.
+**Extension de périmètre (décision du 13 nov. 2026, demandée par le développeur)** : les écrans suivants, d'abord prévus en maquette seulement, sont à coder pour que la démonstration soit intégralement fonctionnelle. En lecture seule quand il n'y a pas de décision métier à prendre, en écriture quand la maquette présente un formulaire :
+- journal d'audit (interface de consultation, lecture seule ; les journaux restent par service, jamais fusionnés)
+- carte de localisation des biens (lecture des `latitude`/`longitude` de `patrimoine`)
+- procès-verbaux (génération de PV d'inventaire et de PV de sortie, consultables/imprimables)
+- vue nationale (agrégation en lecture seule des compteurs par ministère)
+- traitement d'un écart (le comptable documente l'écart constaté : la clôture d'un contrôle, en ajout seul)
+- validation d'un transfert par le responsable (le mouvement passe par `statut_validation` `en_attente` puis `valide`)
+- création de comptes et de structures par l'administrateur
+
+Restent **toujours en maquette seulement (ne pas coder)** : documents joints, mode hors ligne.
 
 ## 3. Stack et contraintes imposées
 

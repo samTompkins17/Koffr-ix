@@ -18,7 +18,7 @@
         </button>
 
         <div id="zone-camera" hidden class="mt-4 overflow-hidden rounded-lg bg-black">
-            <video id="video" class="h-56 w-full object-cover" playsinline muted></video>
+            <div id="lecteur-qr" class="h-56 w-full"></div>
             <p id="erreur-camera" class="hidden bg-red-50 px-3 py-2 text-xs text-rouge"></p>
         </div>
     </section>
@@ -28,7 +28,7 @@
         <p class="mt-1">Saisissez le code inscrit sous le QR code.</p>
     </div>
 
-    <form method="POST" action="{{ route('controles.rechercher') }}" class="mt-4 rounded-xl bg-white p-5 shadow-sm">
+    <form id="formulaire-code" method="POST" action="{{ route('controles.rechercher') }}" class="mt-4 rounded-xl bg-white p-5 shadow-sm">
         @csrf
         <label for="code" class="mb-1.5 block text-sm font-semibold">Code patrimoine *</label>
         <input id="code" name="code" required value="{{ old('code') }}" placeholder="PAT-SAN-2026-0412"
@@ -43,30 +43,40 @@
         </button>
     </form>
 
+    <script src="{{ asset('js/html5-qrcode.min.js') }}"></script>
     <script>
-        // Caméra : flux local uniquement, aucune image n’est transmise.
-        const video = document.getElementById('video');
+        // Scan caméra avec html5-qrcode : le flux reste local, seul le code lu est envoyé.
         const zone = document.getElementById('zone-camera');
         const erreur = document.getElementById('erreur-camera');
-        let flux = null;
+        const champCode = document.getElementById('code');
+        let lecteur = null;
 
-        document.getElementById('bouton-camera').addEventListener('click', async () => {
+        document.getElementById('bouton-camera').addEventListener('click', () => {
             zone.hidden = false;
-            if (flux) return;
-            try {
-                flux = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                video.srcObject = flux;
-                await video.play();
-            } catch (e) {
+            if (lecteur) return;
+
+            lecteur = new Html5Qrcode('lecteur-qr', { verbose: false });
+            lecteur.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 220, height: 220 } },
+                (codeScanne) => {
+                    // Un QR code est reconnu : on arrête la caméra puis on ouvre la fiche.
+                    lecteur.stop().then(() => {
+                        champCode.value = codeScanne;
+                        document.getElementById('formulaire-code').submit();
+                    });
+                },
+                () => {} // QR non reconnu sur cette image : on continue de chercher.
+            ).catch(() => {
                 erreur.hidden = false;
                 erreur.textContent = 'Caméra indisponible. Saisissez le code sous l’étiquette.';
-            }
+            });
         });
 
         document.getElementById('retour-scanner').addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
 
-        window.addEventListener('pagehide', () => flux?.getTracks().forEach((piste) => piste.stop()));
+        window.addEventListener('pagehide', () => lecteur?.stop().catch(() => {}));
     </script>
 @endsection
