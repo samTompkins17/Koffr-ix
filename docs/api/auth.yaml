@@ -130,6 +130,46 @@ paths:
                     name: { type: string }
         '401':
           $ref: '#/components/responses/Erreur'
+  /annuaire:
+    get:
+      summary: Annuaire administrateur (lecture seule)
+      description: |
+        Réservé au rôle `admin`. Nom, rôle, structure et activité.
+        Aucune adresse e-mail, aucun mot de passe. Pas de création de compte.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Comptes et structures
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comptes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        name: { type: string }
+                        role: { type: string }
+                        structure_id: { type: string, format: uuid }
+                        structure_nom: { type: string, nullable: true }
+                        actif: { type: boolean }
+                  structures:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string, format: uuid }
+                        nom: { type: string }
+                        code: { type: string }
+                        type: { type: string }
+                        region: { type: string, nullable: true }
+        '401':
+          $ref: '#/components/responses/Erreur'
+        '403':
+          $ref: '#/components/responses/Erreur'
   /ping:
     get:
       summary: Disponibilité du service

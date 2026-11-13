@@ -123,6 +123,33 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Annuaire de l'administrateur : identité professionnelle (nom, rôle,
+     * structure, activité). Pas d'adresse e-mail, pas de mot de passe.
+     * La création de comptes reste hors démonstration.
+     */
+    public function annuaire()
+    {
+        $comptes = User::query()->with('structure')->orderBy('name')->get()->map(fn (User $u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'role' => $u->role,
+            'structure_id' => $u->structure_id,
+            'structure_nom' => $u->structure?->nom,
+            'actif' => (bool) $u->actif,
+        ]);
+
+        $structures = Structure::query()->orderBy('nom')->get()->map(fn (Structure $s) => [
+            'id' => $s->id,
+            'nom' => $s->nom,
+            'code' => $s->code,
+            'type' => $s->type,
+            'region' => $s->region,
+        ]);
+
+        return ['comptes' => $comptes, 'structures' => $structures];
+    }
+
     private function ids(Request $request): array
     {
         $ids = $request->query('ids', '');

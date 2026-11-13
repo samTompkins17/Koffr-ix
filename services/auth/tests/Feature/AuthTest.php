@@ -109,6 +109,29 @@ class AuthTest extends TestCase
             ->assertJsonPath('0.nom', 'Ministère de la Santé');
     }
 
+    public function test_annuaire_reserve_a_l_administrateur(): void
+    {
+        $agent = $this->connexion('agent@koffr.local');
+
+        $this->withHeader('Authorization', 'Bearer '.$agent)
+            ->getJson('/api/annuaire')
+            ->assertStatus(403);
+
+        $admin = $this->connexion('admin@koffr.local');
+
+        $reponse = $this->withHeader('Authorization', 'Bearer '.$admin)
+            ->getJson('/api/annuaire');
+
+        $reponse->assertOk()
+            ->assertJsonPath('comptes.0.name', 'Abla M.');
+
+        $compte = collect($reponse->json('comptes'))->firstWhere('name', 'Yao T.');
+        $this->assertSame(['id', 'name', 'role', 'structure_id', 'structure_nom', 'actif'], array_keys($compte));
+        $this->assertSame('agent_patrimoine', $compte['role']);
+        $this->assertArrayNotHasKey('email', $compte);
+        $this->assertArrayNotHasKey('password', $compte);
+    }
+
     public function test_le_jeton_expire_est_refuse(): void
     {
         // Jeton signé avec un autre secret : signature invalide du point de vue du service.

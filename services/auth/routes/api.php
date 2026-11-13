@@ -13,4 +13,5 @@ Route::middleware('jwt')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/structures', [AuthController::class, 'structures']);
     Route::get('/users', [AuthController::class, 'users']);
+    Route::get('/annuaire', [AuthController::class, 'annuaire'])->middleware('role:admin');
 });
