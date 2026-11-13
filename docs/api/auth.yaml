@@ -170,6 +170,59 @@ paths:
           $ref: '#/components/responses/Erreur'
         '403':
           $ref: '#/components/responses/Erreur'
+  /comptes:
+    post:
+      summary: Création d'un compte (administrateur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, role, structure_id]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                role:
+                  type: string
+                  enum: [admin, comptable_matieres, agent_patrimoine, responsable_service, controleur]
+                structure_id: { type: string, format: uuid }
+      responses:
+        '201': { description: Compte créé }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '422': { $ref: '#/components/responses/Validation' }
+  /structures:
+    get:
+      summary: Identité des structures (id, nom, code)
+      parameters:
+        - { name: ids, in: query, schema: { type: string } }
+      responses:
+        '200': { description: Structures }
+    post:
+      summary: Création d'une structure (administrateur)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nom, code, type]
+              properties:
+                nom: { type: string }
+                code: { type: string }
+                type: { type: string, enum: [ministere, service, etablissement] }
+                region: { type: string, nullable: true }
+                parent_id: { type: string, format: uuid, nullable: true }
+      responses:
+        '201': { description: Structure créée }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '422': { $ref: '#/components/responses/Validation' }
+  /hierarchie:
+    get:
+      summary: Structures avec leur parent (vue nationale)
+      responses:
+        '200': { description: id, nom, code, type, parent_id }
   /ping:
     get:
       summary: Disponibilité du service

@@ -106,6 +106,25 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/Controle' }
         '403': { $ref: '#/components/responses/Interdit' }
+  /ecarts/{id}/traitement:
+    post:
+      summary: Traitement d'un écart (comptable, ajout seul)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, commentaire]
+              properties:
+                action: { type: string, enum: [regularise, reforme, main_levee, autre] }
+                commentaire: { type: string }
+      responses:
+        '201': { description: Traitement enregistré }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '409': { description: Écart déjà traité }
+        '422': { $ref: '#/components/responses/Validation' }
   /controles/bien/{code}:
     get:
       summary: Fiche du bien et dernier état connu (agent)

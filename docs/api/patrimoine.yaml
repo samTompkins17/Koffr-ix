@@ -176,6 +176,27 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Mouvement' }
+  /mouvements/en-attente:
+    get:
+      summary: Mouvements en attente de validation
+      responses:
+        '200': { description: Mouvements avec bien_code et bien_designation }
+  /mouvements/{id}/valider:
+    post:
+      summary: Validation d'un transfert par le responsable (met à jour la structure)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Mouvement validé }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '409': { description: Mouvement déjà traité }
+  /mouvements/{id}/refuser:
+    post:
+      summary: Refus par le responsable (la structure ne change pas)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Mouvement refusé }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '409': { description: Mouvement déjà traité }
   /stats:
     get:
       summary: Compteurs du tableau de bord
