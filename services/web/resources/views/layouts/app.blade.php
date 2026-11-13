@@ -4,7 +4,7 @@
     $roleLibelle = config('koffr.roles')[$role] ?? $role;
     $ministere = config('koffr.ministeres')[$utilisateur['ministere_code'] ?? ''] ?? null;
 
-    // Seules les pages réellement codées figurent dans le menu.
+    // Liens réellement codés, dans l'ordre du menu des maquettes.
     $liens = [
         ['route' => 'tableau', 'motif' => 'tableau', 'libelle' => 'Tableau de bord'],
         ['route' => 'biens.index', 'motif' => 'biens.*', 'libelle' => 'Biens'],
@@ -19,6 +19,10 @@
     if ($role === 'agent_patrimoine') {
         $liens[] = ['route' => 'controles.scan', 'motif' => 'controles.*', 'libelle' => 'Contrôle par scan'];
     }
+
+    // Écrans des maquettes hors périmètre : affichés, jamais cliquables.
+    $maquettes = ['Carte', 'Procès-verbaux', 'Vue nationale'];
+    $admin = $role === 'admin';
 @endphp
 <!DOCTYPE html>
 <html lang="fr">
@@ -91,6 +95,9 @@
                         {{ $lien['libelle'] }}
                     </a>
                 @endforeach
+                @if ($admin)
+                    <a href="{{ route('admin.index') }}" class="whitespace-nowrap rounded-lg px-3 py-2 {{ request()->routeIs('admin.*') ? 'bg-green-50 font-semibold text-vert' : 'text-gray-700' }}">Utilisateurs et rôles</a>
+                @endif
             </nav>
 
             <main id="contenu" class="mx-auto w-full max-w-[1120px] flex-1 px-5 py-8 lg:px-10">

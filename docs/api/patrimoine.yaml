@@ -193,6 +193,7 @@ paths:
                   valeur_totale: { type: integer }
                   par_etat: { type: object }
                   par_categorie: { type: object }
+                  par_structure: { type: object, description: nombre de biens par structure_id }
   /public/biens/{code}:
     get:
       summary: Vérification publique d'un bien (sans authentification)

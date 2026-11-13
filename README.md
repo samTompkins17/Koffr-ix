@@ -113,6 +113,8 @@ Les trois premiers comptes sont proposés sur l'écran de connexion.
    la ligne s'affiche avec les deux états et l'agent, en lecture seule (export CSV possible).
 8. **Vérifier publiquement** : ouvrir `http://localhost:8080/verifier` sans être connecté,
    puis saisir le code (ou ouvrir directement `http://localhost:8080/verifier/<code>`).
+9. **Administration** : se connecter avec `admin@koffr.local`, menu « Utilisateurs et rôles » :
+   comptes, matrice des droits et structures (biens rattachés, responsable). Lecture seule.
    Seuls le statut « bien de l'État », l'immatriculation, la catégorie et le ministère apparaissent.
 
 Le contrôleur ne peut rien écrire : les boutons de création disparaissent et l'API répond `403`.
@@ -134,6 +136,7 @@ Toutes les réponses d'erreur suivent `{"message": "...", "errors": {...}}` avec
 | GET | `/api/auth/me` | profil du compte connecté |
 | GET | `/api/auth/structures?ids=` | id et nom des structures |
 | GET | `/api/auth/users?ids=` | id et nom des comptes (rien d'autre) |
+| GET | `/api/auth/annuaire` | admin (page Administration : comptes et structures, sans e-mail) |
 | GET | `/api/auth/ping` | disponibilité |
 
 ### patrimoine

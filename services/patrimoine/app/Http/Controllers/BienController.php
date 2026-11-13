@@ -126,6 +126,12 @@ class BienController extends Controller
             ->groupBy('categorie')
             ->pluck('total', 'categorie');
 
+        // Croisement par structure : sert à l'onglet « Structures » de
+        // l'administration, sans un appel par structure.
+        $parStructure = Bien::selectRaw('structure_id, count(*) as total')
+            ->groupBy('structure_id')
+            ->pluck('total', 'structure_id');
+
         return response()->json([
             'total' => Bien::count(),
             'en_service' => Bien::where('statut', 'en_service')->count(),
@@ -133,6 +139,7 @@ class BienController extends Controller
             'valeur_totale' => (int) Bien::sum('valeur_acquisition'),
             'par_etat' => $parEtat,
             'par_categorie' => $parCategorie,
+            'par_structure' => $parStructure,
         ]);
     }
 

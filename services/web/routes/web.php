@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BienController;
 use App\Http\Controllers\CampagneController;
@@ -45,6 +46,9 @@ Route::middleware(AssurerSession::class)->group(function () {
     Route::get('/campagnes', [CampagneController::class, 'index'])->name('campagnes.index');
     Route::post('/campagnes', [CampagneController::class, 'enregistrer'])->name('campagnes.enregistrer');
     Route::get('/campagnes/{id}', [CampagneController::class, 'fiche'])->name('campagnes.fiche');
+
+    // Administration (annuaire, lecture seule)
+    Route::get('/administration', [AdminController::class, 'index'])->name('admin.index');
 
     // Écarts et rapports
     Route::get('/ecarts', [EcartController::class, 'index'])->name('ecarts.index');

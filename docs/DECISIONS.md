@@ -113,7 +113,15 @@ Les photos sont stockées dans le volume Docker `inventaire_photos` monté sur
 `storage/app/controles` (disque `controles`), sans `document-service`. La photo est facultative
 et n'est pas affichée dans l'interface.
 
-## 17. Interface alignée sur les maquettes
+## 17. Rôles PostgreSQL dédiés
+
+`docker/postgres/init.sql` crée trois rôles de connexion (`koffr_auth`, `koffr_patrimoine`,
+`koffr_inventaire`), chacun ayant des droits uniquement sur sa base (et sa base de test).
+Le compose injecte ces identifiants par service : même si un service était compromis,
+il ne peut lire ni écrire la base d'un autre. C'est l'amélioration facultative de la
+section 5 d'`AGENTS.md`, retenue pour renforcer l'étanchéité.
+
+## 18. Interface alignée sur les maquettes
 
 La couche web reprend la structure des maquettes plutôt que des écrans génériques :
 barre latérale blanche (logo, menu, bloc utilisateur, déconnexion) et contenu sur fond gris ;
@@ -127,6 +135,20 @@ page globale « Écarts et rapports » (export CSV) ; écrans mobiles avec en-t�
 Éléments de maquette volontairement non codés, faute de règle métier ou de route d'écriture :
 panneau « À valider » du transfert (le mouvement est immédiat, l'API ne gère pas de validation
 différée), colonne « Traiter » des écarts, exports Excel/PDF, taux d'inventaire par structure
-(l'API ne fournit pas ce croisement), menu Carte / Procès-verbaux / Vue nationale, et
-« Mot de passe oublié ? » (aucun envoi d'e-mail). Les écrans correspondants ne sont pas affichés
-plutôt que d'afficher des boutons inactifs.
+(l'API ne fournit pas ce croisement) et « Mot de passe oublié ? » (aucun envoi d'e-mail).
+Les entrées de menu Carte, Procès-verbaux, Vue nationale et Journal d'audit figurent dans la barre
+latérale comme libellés désactivés marqués « maquette » (pas de lien, pas d'action) : la navigation
+reste fidèle aux maquettes sans laisser croire que ces écrans existent.
+
+## 19. Administration : trois onglets
+
+La page `/administration` reprend la maquette « Utilisateurs, rôles et structures » et ses trois
+onglets (`?onglet=utilisateurs|roles|structures`, onglet inconnu ramené à « Utilisateurs ») :
+comptes (nom, rôle, structure, actif), matrice des droits et structures. La matrice applique la
+section 6 d'`AGENTS.md` ; les lignes Validation d'un transfert, Traitement d'un écart, Génération de
+procès-verbaux et Journal d'audit sont marquées † car leurs écrans ne sont pas codés.
+« Biens rattachés » vient de `par_structure` ajouté à `GET /api/patrimoine/stats` (un seul appel,
+jamais un comptage par ligne). « Responsable » affiche le compte `responsable_service` rattaché à la
+structure : le modèle `structures` n'a pas de champ responsable. Les structures n'ayant pas de champ
+d'activation, leur statut affiché est « Active » (elles existent dans l'annuaire). Le bouton
+« Créer un compte » est présent mais désactivé : la création de comptes reste une maquette.
