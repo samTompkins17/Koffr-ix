@@ -17,15 +17,25 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        $biens = [
-            ['PAT-SAN-2026-0412', 'Ordinateur portable HP 450', 'Matériel informatique', 450000, '2026-02-10', 'bon', 'Bureau 2, Services généraux'],
-            ['PAT-SAN-2026-0411', 'Imprimante laser', 'Matériel informatique', 185000, '2026-02-10', 'usage', 'Bureau 2, Services généraux'],
-            ['PAT-SAN-2025-0231', 'Climatiseur 18 000 BTU', 'Matériel informatique', 320000, '2025-06-03', 'bon', 'Salle de réunion'],
-            ['PAT-SAN-2025-0198', 'Groupe électrogène 20 kVA', 'Autres', 4500000, '2025-05-21', 'hors_service', 'Local technique'],
-            ['PAT-SAN-2024-0087', 'Véhicule utilitaire Toyota Hilux', 'Véhicules', 18000000, '2024-11-08', 'usage', 'Parking, Services généraux'],
+        // Coordonnées de démonstration (Lomé et environs) pour la carte.
+        // Coordonnées de démonstration (Lomé) : la carte et les PV en ont besoin.
+        $coordonnees = [
+            'PAT-SAN-2026-0412' => [6.13194, 1.22278],
+            'PAT-SAN-2026-0411' => [6.13210, 1.22305],
+            'PAT-SAN-2025-0231' => [6.12902, 1.21504],
+            'PAT-SAN-2025-0198' => [6.12851, 1.21462],
+            'PAT-SAN-2024-0087' => [6.17502, 1.23011],
         ];
 
-        foreach ($biens as [$code, $designation, $categorie, $valeur, $date, $etat, $localisation]) {
+        $biens = [
+            ['PAT-SAN-2026-0412', 'Ordinateur portable HP 450', 'Matériel informatique', 450000, '2026-02-10', 'bon', 'Bureau 2, Services généraux', 6.1310, 1.2226],
+            ['PAT-SAN-2026-0411', 'Imprimante laser', 'Matériel informatique', 185000, '2026-02-10', 'usage', 'Bureau 2, Services généraux', 6.1310, 1.2226],
+            ['PAT-SAN-2025-0231', 'Climatiseur 18 000 BTU', 'Matériel informatique', 320000, '2025-06-03', 'bon', 'Salle de réunion', 6.1325, 1.2218],
+            ['PAT-SAN-2025-0198', 'Groupe électrogène 20 kVA', 'Autres', 4500000, '2025-05-21', 'hors_service', 'Local technique', 6.1341, 1.2245],
+            ['PAT-SAN-2024-0087', 'Véhicule utilitaire Toyota Hilux', 'Véhicules', 18000000, '2024-11-08', 'usage', 'Parking, Services généraux', 6.1305, 1.2237],
+        ];
+
+        foreach ($biens as [$code, $designation, $categorie, $valeur, $date, $etat, $localisation, $latitude, $longitude]) {
             $bien = Bien::firstOrNew(['code_unique' => $code]);
             if (! $bien->exists) {
                 $bien->code_unique = $code;
@@ -38,6 +48,10 @@ class DatabaseSeeder extends Seeder
                 'etat' => $etat,
                 'statut' => 'en_service',
                 'localisation' => $localisation,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'latitude' => $coordonnees[$code][0] ?? null,
+                'longitude' => $coordonnees[$code][1] ?? null,
                 'structure_id' => self::SERVICES_GENERAUX,
                 'responsable_id' => self::RESPONSABLE,
             ])->save();

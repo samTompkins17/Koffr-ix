@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BienController;
+use App\Http\Controllers\JournalAuditController;
 use App\Http\Controllers\MouvementController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\QrCodeController;
@@ -13,6 +14,8 @@ Route::get('/public/biens/{code}', [PublicController::class, 'bien']);
 
 Route::middleware('jwt')->group(function () {
     Route::get('/biens', [BienController::class, 'index']);
+    Route::get('/journal', [JournalAuditController::class, 'index'])
+        ->middleware('role:admin,controleur');
     Route::get('/stats', [BienController::class, 'stats']);
     Route::get('/mouvements/recents', [MouvementController::class, 'recents']);
     Route::get('/biens/code/{code}', [BienController::class, 'parCode']);

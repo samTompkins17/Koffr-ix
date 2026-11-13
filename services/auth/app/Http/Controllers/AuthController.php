@@ -108,6 +108,21 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Hiérarchie des structures : identité organisationnelle seulement
+     * (ni compte, ni donnée personnelle). Sert la vue nationale et les PV.
+     */
+    public function hierarchie()
+    {
+        return Structure::query()->orderBy('nom')->get()->map(fn (Structure $s) => [
+            'id' => $s->id,
+            'nom' => $s->nom,
+            'code' => $s->code,
+            'type' => $s->type,
+            'parent_id' => $s->parent_id,
+        ]);
+    }
+
     public function users(Request $request)
     {
         $ids = $this->ids($request);

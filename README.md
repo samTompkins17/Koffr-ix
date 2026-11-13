@@ -115,6 +115,11 @@ Les trois premiers comptes sont proposés sur l'écran de connexion.
    puis saisir le code (ou ouvrir directement `http://localhost:8080/verifier/<code>`).
 9. **Administration** : se connecter avec `admin@koffr.local`, menu « Utilisateurs et rôles » :
    comptes, matrice des droits et structures (biens rattachés, responsable). Lecture seule.
+10. **Carte** : menu « Carte » : les biens géolocalisés, avec leur fiche en lien.
+11. **Vue nationale** : menu « Vue nationale » : compteurs par ministère, taux d'inventaire et écarts.
+12. **Procès-verbaux** : menu « Procès-verbaux » → « Générer le PV » (inventaire d'une campagne).
+13. **Journal d'audit** : avec `admin@koffr.local` ou `controleur@koffr.local`, menu « Journal d'audit » :
+    les trois journaux séparés (auth, patrimoine, inventaire), filtrés par action, en lecture seule.
    Seuls le statut « bien de l'État », l'immatriculation, la catégorie et le ministère apparaissent.
 
 Le contrôleur ne peut rien écrire : les boutons de création disparaissent et l'API répond `403`.
@@ -136,6 +141,7 @@ Toutes les réponses d'erreur suivent `{"message": "...", "errors": {...}}` avec
 | GET | `/api/auth/me` | profil du compte connecté |
 | GET | `/api/auth/structures?ids=` | id et nom des structures |
 | GET | `/api/auth/users?ids=` | id et nom des comptes (rien d'autre) |
+| GET | `/api/auth/hierarchie` | structures (id, nom, code, type, parent) pour la vue nationale |
 | GET | `/api/auth/annuaire` | admin (page Administration : comptes et structures, sans e-mail) |
 | GET | `/api/auth/ping` | disponibilité |
 

@@ -16,12 +16,24 @@
         $liens[] = ['route' => 'ecarts.index', 'motif' => 'ecarts.*', 'libelle' => 'Écarts et rapports'];
     }
 
+    $liens[] = ['route' => 'carte.index', 'motif' => 'carte.*', 'libelle' => 'Carte'];
+
+    if (in_array($role, ['admin', 'comptable_matieres', 'responsable_service'], true)) {
+        $liens[] = ['route' => 'proces-verbaux.index', 'motif' => 'proces-verbaux.*', 'libelle' => 'Procès-verbaux'];
+    }
+
+    $liens[] = ['route' => 'vue-nationale.index', 'motif' => 'vue-nationale.*', 'libelle' => 'Vue nationale'];
+
     if ($role === 'agent_patrimoine') {
         $liens[] = ['route' => 'controles.scan', 'motif' => 'controles.*', 'libelle' => 'Contrôle par scan'];
     }
 
-    // Écrans des maquettes hors périmètre : affichés, jamais cliquables.
-    $maquettes = ['Carte', 'Procès-verbaux', 'Vue nationale'];
+    if (in_array($role, ['admin', 'controleur'], true)) {
+        $liens[] = ['route' => 'journal.index', 'motif' => 'journal.*', 'libelle' => 'Journal d’audit'];
+    }
+
+    // Tous les écrans du menu sont désormais réels ; la liste reste vide.
+    $maquettes = [];
     $admin = $role === 'admin';
 @endphp
 <!DOCTYPE html>

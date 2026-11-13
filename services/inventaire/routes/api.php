@@ -2,12 +2,15 @@
 
 use App\Http\Controllers\CampagneController;
 use App\Http\Controllers\ControleController;
+use App\Http\Controllers\JournalAuditController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/ping', fn () => ['service' => 'inventaire', 'ok' => true]);
 
 Route::middleware('jwt')->group(function () {
     Route::get('/campagnes', [CampagneController::class, 'index']);
+    Route::get('/journal', [JournalAuditController::class, 'index'])
+        ->middleware('role:admin,controleur');
     Route::get('/campagnes/{id}', [CampagneController::class, 'show']);
     Route::get('/campagnes/{id}/controles', [ControleController::class, 'parCampagne']);
 

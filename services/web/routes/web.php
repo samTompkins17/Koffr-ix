@@ -4,11 +4,15 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BienController;
 use App\Http\Controllers\CampagneController;
+use App\Http\Controllers\CarteController;
 use App\Http\Controllers\ControleController;
 use App\Http\Controllers\EcartController;
+use App\Http\Controllers\JournalController;
+use App\Http\Controllers\ProcesVerbalController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\TableauDeBordController;
 use App\Http\Controllers\TransfertController;
+use App\Http\Controllers\VueNationaleController;
 use App\Http\Middleware\AssurerSession;
 use Illuminate\Support\Facades\Route;
 
@@ -52,7 +56,16 @@ Route::middleware(AssurerSession::class)->group(function () {
 
     // Écarts et rapports
     Route::get('/ecarts', [EcartController::class, 'index'])->name('ecarts.index');
+
+    // Journal d'audit (lecture seule)
+    Route::get('/journal', [JournalController::class, 'index'])->name('journal.index');
     Route::get('/ecarts/export.csv', [EcartController::class, 'exportCsv'])->name('ecarts.export');
+    // Carte, vue nationale et procès-verbaux (lecture seule)
+    Route::get('/carte', [CarteController::class, 'index'])->name('carte.index');
+    Route::get('/vue-nationale', [VueNationaleController::class, 'index'])->name('vue-nationale.index');
+    Route::get('/proces-verbaux', [ProcesVerbalController::class, 'index'])->name('proces-verbaux.index');
+    Route::get('/proces-verbaux/inventaire/{campagne}', [ProcesVerbalController::class, 'inventaire'])->name('proces-verbaux.inventaire');
+    Route::get('/proces-verbaux/sortie/{bien}', [ProcesVerbalController::class, 'sortie'])->name('proces-verbaux.sortie');
 
     // Contrôle par scan
     Route::get('/controles/scan', [ControleController::class, 'scan'])->name('controles.scan');

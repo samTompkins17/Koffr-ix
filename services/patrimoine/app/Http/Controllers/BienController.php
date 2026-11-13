@@ -132,6 +132,10 @@ class BienController extends Controller
             ->groupBy('structure_id')
             ->pluck('total', 'structure_id');
 
+        $valeurParStructure = Bien::selectRaw('structure_id, sum(valeur_acquisition) as total')
+            ->groupBy('structure_id')
+            ->pluck('total', 'structure_id');
+
         return response()->json([
             'total' => Bien::count(),
             'en_service' => Bien::where('statut', 'en_service')->count(),
@@ -140,6 +144,7 @@ class BienController extends Controller
             'par_etat' => $parEtat,
             'par_categorie' => $parCategorie,
             'par_structure' => $parStructure,
+            'valeur_par_structure' => $valeurParStructure,
         ]);
     }
 

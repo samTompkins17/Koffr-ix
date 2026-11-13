@@ -152,3 +152,26 @@ jamais un comptage par ligne). « Responsable » affiche le compte `responsable_
 structure : le modèle `structures` n'a pas de champ responsable. Les structures n'ayant pas de champ
 d'activation, leur statut affiché est « Active » (elles existent dans l'annuaire). Le bouton
 « Créer un compte » est présent mais désactivé : la création de comptes reste une maquette.
+
+## 20. Extension de périmètre : écrans de consultation
+
+Suite à la mise à jour d'`AGENTS.md` (13 nov. 2026), le journal d'audit, la carte, la vue nationale
+et les procès-verbaux ne sont plus des maquettes.
+
+- **Journal d'audit** : le web interroge les trois journaux (`/api/auth/journal`,
+  `/api/patrimoine/journal`, `/api/inventaire/journal`) et les affiche séparément, sans fusion ni
+  agrégation en base. Réservé à l'administrateur et au contrôleur (lecture).
+- **Carte** : Leaflet et fond OpenStreetMap chargés par CDN côté navigateur ; seuls les biens portant
+  `latitude`/`longitude` sont affichés. Les cinq biens de démonstration reçoivent des coordonnées de
+  Lomé dans le seeder, et la base de démonstration a été mise à jour sans réinitialisation.
+- **Vue nationale** : croisement réalisé par le web (auth fournit la hiérarchie des structures via
+  `GET /api/auth/hierarchie` ; patrimoine fournit `par_structure` et `valeur_par_structure` ;
+  inventaire fournit les campagnes avec leurs compteurs). Aucun service ne lit la base d'un autre.
+  Le taux compare les constats au nombre de biens du ministère, sous-structures comprises.
+- **Procès-verbaux** : générés à la demande depuis les données existantes (aucune table, donc rien
+  à modifier ni à supprimer) ; PV d'inventaire par campagne et PV de sortie par bien sorti, sur une
+  mise en page A4 imprimable avec blason, référence et blocs de signature. Mention explicite de
+  document de démonstration.
+- La matrice des rôles de la page Administration garde ses lignes † (validation d'un transfert,
+  traitement d'un écart, PV, journal) ; journal et PV étant désormais codés, leurs lignes seront
+  mises à jour lors de l'étape suivante (validation, traitement d'écart, création de comptes).
