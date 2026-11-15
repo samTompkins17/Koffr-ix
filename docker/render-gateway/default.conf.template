@@ -1,0 +1,44 @@
+# Passerelle KOFFR-IX pour Render : mêmes routes que docker/gateway/default.conf,
+# mais les services sont joints par leurs adresses publiques (HTTPS).
+# Variables à définir sur Render : AUTH_HOST, PATRIMOINE_HOST, INVENTAIRE_HOST
+# (nom d'hôte seul, sans https://, ex. koffr-auth.onrender.com).
+server {
+    listen ${PORT};
+
+    default_type text/plain;
+    resolver 1.1.1.1 8.8.8.8 valid=30s ipv6=off;
+
+    # Un service gratuit endormi met environ 1 minute à se réveiller.
+    proxy_connect_timeout 120s;
+    proxy_send_timeout 120s;
+    proxy_read_timeout 120s;
+    proxy_ssl_server_name on;
+
+    location = /ping {
+        return 200 'gateway ok';
+    }
+
+    location /api/auth/ {
+        set $upstream_auth https://${AUTH_HOST};
+        rewrite ^/api/auth/(.*)$ /api/$1 break;
+        proxy_pass $upstream_auth;
+        proxy_set_header Host ${AUTH_HOST};
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    location /api/patrimoine/ {
+        set $upstream_patrimoine https://${PATRIMOINE_HOST};
+        rewrite ^/api/patrimoine/(.*)$ /api/$1 break;
+        proxy_pass $upstream_patrimoine;
+        proxy_set_header Host ${PATRIMOINE_HOST};
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    location /api/inventaire/ {
+        set $upstream_inventaire https://${INVENTAIRE_HOST};
+        rewrite ^/api/inventaire/(.*)$ /api/$1 break;
+        proxy_pass $upstream_inventaire;
+        proxy_set_header Host ${INVENTAIRE_HOST};
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
