@@ -65,7 +65,10 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'Africa/Lome',
+
+    // Adresse publique encodée dans les QR codes (page de vérification du web).
+    'public_verify_url' => env('PUBLIC_VERIFY_URL', 'http://localhost:8080/verifier'),
 
     /*
     |--------------------------------------------------------------------------

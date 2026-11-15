@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40" viewBox="0 0 200 40" role="img" aria-label="KOFFR-IX">
+  <rect x="0" y="4" width="32" height="32" rx="7" fill="#006A4F"/>
+  <path d="M10 11v18M10 21l9-10M13.5 18.5 22 29" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="square" fill="none"/>
+  <circle cx="24.5" cy="11.5" r="2.2" fill="#FFCF11"/>
+  <text x="42" y="27" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#111111">KOFFR</text>
+  <text x="128" y="27" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800" fill="#006A4F">-IX</text>
+</svg>

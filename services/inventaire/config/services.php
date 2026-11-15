@@ -2,6 +2,9 @@
 
 return [
 
+    // Adresse interne du service patrimoine (appel serveur à serveur).
+    'patrimoine_url' => env('PATRIMOINE_URL', 'http://patrimoine:8080'),
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
