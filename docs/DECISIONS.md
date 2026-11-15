@@ -196,3 +196,12 @@ Trois écrans d'écriture issus de l'extension de périmètre (AGENTS.md, 13 nov
   `creation_compte` / `creation_structure` est tracée dans le journal d'auth. La matrice des rôles
   de la page Administration ne porte plus de lignes « maquette » : les droits affichés
   correspondent aux contrôles réellement appliqués par les services.
+## 22. Gabarit commun des procès-verbaux : étape 1
+
+Les aperçus imprimables et les variantes PDF réutilisent `layouts.impression`. Le gabarit
+prévoit le format A4 avec marges de 18 mm, un en-tête républicain centré, le blason source non
+modifié à 22 mm minimum, puis le titre et la référence centrés et un pied de page daté. Le corps
+des PV reprend la typographie à empattements de la maquette, contrairement à Inter dans
+l'interface : cet écart est volontaire et limité aux documents officiels imprimables.
+`DateEnLettres::dateEnLettres()` et ses tests sont ajoutés. Les routes, références et données
+métier des procès-verbaux restent inchangées à cette étape.
