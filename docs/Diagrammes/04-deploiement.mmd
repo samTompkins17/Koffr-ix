@@ -7,11 +7,10 @@ flowchart TB
         auth["auth-service"]
         pat["patrimoine-service"]
         inv["inventaire-service"]
-        doc["document-service"]
         dba[("db-auth")]
         dbp[("db-patrimoine")]
         dbi[("db-inventaire")]
-        vol[/"volume fichiers"/]
+        vol[/"volume fichiers Docker (photos de contrôle du service inventaire)"/]
     end
 
     user -->|HTTPS| gw
@@ -19,9 +18,8 @@ flowchart TB
     gw --> auth
     gw --> pat
     gw --> inv
-    gw --> doc
     auth --> dba
     pat --> dbp
     inv --> dbi
-    doc --> vol
+    inv --> vol
     inv -.->|API REST| pat

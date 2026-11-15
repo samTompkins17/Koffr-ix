@@ -6,7 +6,7 @@ flowchart LR
     ctl(["Contrôleur"])
     pub(["Public (scan du QR code)"])
 
-    subgraph GEPAT["Système GEPAT"]
+    subgraph KOFFR["Système KOFFR-IX"]
         UC1(["Gérer comptes, rôles et structures"])
         UC2(["Créer et immatriculer un bien"])
         UC3(["Affecter ou transférer un bien"])
@@ -14,7 +14,7 @@ flowchart LR
         UC5(["Déclarer une sortie (réforme, cession, perte)"])
         UC6(["Valider un transfert ou une sortie"])
         UC7(["Réaliser un inventaire par scan"])
-        UC8(["Joindre un document"])
+        UC8(["Joindre un document (optionnel)"])
         UC9(["Consulter carte et tableau de bord"])
         UC10(["Consulter l'historique et le journal d'audit"])
         UC11(["Vérifier un bien par QR code (public)"])
@@ -23,6 +23,7 @@ flowchart LR
     end
 
     adm --- UC1
+    adm --- UC10
     cm --- UC2
     cm --- UC3
     cm --- UC4
