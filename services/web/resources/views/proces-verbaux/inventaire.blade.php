@@ -3,8 +3,10 @@
 @section('titre', 'PV d’inventaire')
 @section('titre-pv', 'Procès-verbal d’inventaire physique')
 @section('reference', 'PV-INV-'.substr((string) $campagne['id'], 0, 8))
+
 @section('retour', route('proces-verbaux.index'))
 @section('retour-libelle', 'Retour aux procès-verbaux')
+@section('pdf-url', route('proces-verbaux.inventaire', ['campagne' => $campagne['id'], 'format' => 'pdf']))
 
 @section('contenu')
     @php

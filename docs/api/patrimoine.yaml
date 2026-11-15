@@ -92,6 +92,63 @@ paths:
           description: Bien mis à jour
         '403': { $ref: '#/components/responses/Interdit' }
         '422': { $ref: '#/components/responses/Validation' }
+  /biens/{id}/documents:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: Documents privés du bien (tous les utilisateurs authentifiés)
+      responses:
+        '200':
+          description: Métadonnées, sans chemin de stockage
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Document' }
+        '401': { $ref: '#/components/responses/NonAuthentifie' }
+        '404': { $ref: '#/components/responses/Introuvable' }
+    post:
+      summary: Ajouter un document (admin, comptable)
+      description: Ajout seul, sans remplacement ni suppression. PDF/JPG/PNG, maximum 10 Mo.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [type, fichier]
+              properties:
+                type: { type: string, enum: [facture, acte, titre, photo, autre] }
+                fichier: { type: string, format: binary }
+      responses:
+        '201':
+          description: Document ajouté et journalisé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        '401': { $ref: '#/components/responses/NonAuthentifie' }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '404': { $ref: '#/components/responses/Introuvable' }
+        '413': { description: Corps de requête supérieur à la limite de 12 Mo }
+        '422': { $ref: '#/components/responses/Validation' }
+  /biens/{bienId}/documents/{documentId}:
+    get:
+      summary: Télécharger un document privé du bien
+      parameters:
+        - { name: bienId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Fichier joint (Content-Disposition attachment, nosniff, cache privé)
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/NonAuthentifie' }
+        '404': { $ref: '#/components/responses/Introuvable' }
   /biens/code/{code}:
     get:
       summary: Recherche par code patrimoine (scan, appel interne)
@@ -246,6 +303,18 @@ components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
   schemas:
+    Document:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        bien_id: { type: string, format: uuid }
+        type: { type: string, enum: [facture, acte, titre, photo, autre] }
+        nom_original: { type: string }
+        mime_type: { type: string, enum: [application/pdf, image/jpeg, image/png] }
+        taille: { type: integer, description: Taille en octets }
+        auteur_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     Bien:
       type: object
       properties:

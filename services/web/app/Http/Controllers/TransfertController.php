@@ -13,7 +13,7 @@ class TransfertController extends ControleurKoffr
     public function index(Request $request)
     {
         if (! $this->roleAutorise(['comptable_matieres', 'responsable_service'])) {
-            return redirect()->route('biens.index')->with('erreur', 'Votre rôle ne permet pas de déclarer un mouvement.');
+            abort(403, 'Votre rôle ne permet pas de déclarer un mouvement.');
         }
 
         $biens = $this->api()->get('/api/patrimoine/biens', ['per_page' => 100])->json('data', []);
@@ -39,7 +39,7 @@ class TransfertController extends ControleurKoffr
     public function store(Request $request)
     {
         if (! $this->roleAutorise(['comptable_matieres', 'responsable_service'])) {
-            return redirect()->route('biens.index')->with('erreur', 'Votre rôle ne permet pas de déclarer un mouvement.');
+            abort(403, 'Votre rôle ne permet pas de déclarer un mouvement.');
         }
 
         $donnees = $request->validate([
@@ -93,8 +93,7 @@ class TransfertController extends ControleurKoffr
     private function decider(Request $request, string $mouvementId, string $action)
     {
         if (! $this->roleAutorise(['responsable_service'])) {
-            return redirect()->route('transferts.index')
-                ->with('erreur', 'Seul le responsable de service valide un transfert.');
+            abort(403, 'Seul le responsable de service valide un transfert.');
         }
 
         $donnees = $request->validate(['motif' => ['nullable', 'string', 'max:500']]);

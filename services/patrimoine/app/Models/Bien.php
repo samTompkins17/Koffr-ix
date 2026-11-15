@@ -40,6 +40,11 @@ class Bien extends Model
         return $this->hasMany(Mouvement::class)->orderByDesc('date');
     }
 
+    public function documents()
+    {
+        return $this->hasMany(Document::class)->orderByDesc('created_at')->orderByDesc('id');
+    }
+
     /**
      * Catégories autorisées (référentiel simple, pas de table dédiée).
      */

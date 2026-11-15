@@ -2,18 +2,18 @@ flowchart TB
     user(["Utilisateur : navigateur ou mobile"])
     gw["Passerelle Nginx<br/>/ · /api/auth · /api/patrimoine · /api/inventaire"]
 
-    web["web<br/>Laravel Blade + Tailwind"]
-    auth["auth-service<br/>Comptes, rôles, JWT"]
-    pat["patrimoine-service<br/>Biens, QR codes, transferts"]
-    inv["inventaire-service<br/>Campagnes, scan, écarts"]
+    web["web<br/>Laravel Blade + Tailwind<br/>appelle uniquement la passerelle"]
+    auth["auth-service<br/>Comptes, rôles, structures, émission du JWT"]
+    pat["patrimoine-service<br/>Biens, QR codes, transferts, PV"]
+    inv["inventaire-service<br/>Campagnes, scan, écarts, photos"]
 
-    dba[("db-auth<br/>PostgreSQL")]
-    dbp[("db-patrimoine<br/>PostgreSQL")]
-    dbi[("db-inventaire<br/>PostgreSQL")]
-    vol[/"volume fichiers Docker<br/>photos de contrôle"/]
+    dba[("auth_db<br/>PostgreSQL")]
+    dbp[("patrimoine_db<br/>PostgreSQL")]
+    dbi[("inventaire_db<br/>PostgreSQL")]
 
     user -->|HTTPS| gw
     gw -->|"/"| web
+    web -->|"API"| gw
     gw -->|"/api/auth"| auth
     gw -->|"/api/patrimoine"| pat
     gw -->|"/api/inventaire"| inv
@@ -21,6 +21,8 @@ flowchart TB
     auth --> dba
     pat --> dbp
     inv --> dbi
-    inv --> vol
 
     inv -->|"REST interne : fiche du bien"| pat
+
+    note1["JWT : signé par auth, vérifié localement par chaque service avec la clé partagée.<br/>Aucun service n'appelle auth pour traiter une requête."]
+    auth -.- note1

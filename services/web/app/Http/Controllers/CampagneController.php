@@ -33,7 +33,7 @@ class CampagneController extends ControleurKoffr
     public function enregistrer(Request $request)
     {
         if (! $this->roleAutorise(['comptable_matieres'])) {
-            return redirect()->route('campagnes.index')->with('erreur', 'Seul le comptable des matières peut ouvrir une campagne.');
+            abort(403, 'Seul le comptable des matières peut ouvrir une campagne.');
         }
 
         $donnees = $request->validate([
@@ -50,7 +50,7 @@ class CampagneController extends ControleurKoffr
         }
 
         if ($reponse->status() === 403) {
-            return back()->withInput()->with('erreur', 'Seul le comptable des matières peut ouvrir une campagne.');
+            abort(403, 'Seul le comptable des matières peut ouvrir une campagne.');
         }
 
         if ($reponse->status() === 422) {

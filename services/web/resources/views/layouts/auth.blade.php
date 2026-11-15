@@ -38,7 +38,6 @@
             </div>
 
             <p class="mt-6 text-center text-xs text-gray-600">
-                Maquette de démonstration · projet pédagogique, non officiel · données fictives
             </p>
         </div>
     </main>

@@ -44,7 +44,6 @@
             </div>
 
             <p class="mt-10 text-xs text-gray-500">
-                Maquette de démonstration · projet pédagogique, non officiel · données fictives
             </p>
         </section>
 

@@ -15,7 +15,7 @@ class AdminController extends ControleurKoffr
     public function index(Request $request)
     {
         if (! $this->roleAutorise(['admin'])) {
-            return redirect()->route('tableau')->with('erreur', 'Cette page est réservée à l’administrateur.');
+            abort(403, 'Cette page est réservée à l’administrateur.');
         }
 
         $reponse = $this->api()->get('/api/auth/annuaire');
@@ -25,7 +25,7 @@ class AdminController extends ControleurKoffr
         }
 
         if ($reponse->status() === 403) {
-            return redirect()->route('tableau')->with('erreur', 'Cette page est réservée à l’administrateur.');
+            abort(403, 'Cette page est réservée à l’administrateur.');
         }
 
         if (! $reponse->successful()) {
@@ -69,7 +69,7 @@ class AdminController extends ControleurKoffr
     public function creerCompte(Request $request)
     {
         if (! $this->roleAutorise(['admin'])) {
-            return redirect()->route('tableau')->with('erreur', 'Cette page est réservée à l’administrateur.');
+            abort(403, 'Cette page est réservée à l’administrateur.');
         }
 
         $donnees = $request->validate([
@@ -107,7 +107,7 @@ class AdminController extends ControleurKoffr
     public function creerStructure(Request $request)
     {
         if (! $this->roleAutorise(['admin'])) {
-            return redirect()->route('tableau')->with('erreur', 'Cette page est réservée à l’administrateur.');
+            abort(403, 'Cette page est réservée à l’administrateur.');
         }
 
         $donnees = $request->validate([

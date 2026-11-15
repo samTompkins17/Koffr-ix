@@ -3,8 +3,10 @@
 @section('titre', 'PV de sortie')
 @section('titre-pv', 'Procès-verbal de sortie de patrimoine')
 @section('reference', 'PV-SORTIE-'.$bien['code_unique'])
+
 @section('retour', route('proces-verbaux.index'))
 @section('retour-libelle', 'Retour aux procès-verbaux')
+@section('pdf-url', route('proces-verbaux.sortie', ['bien' => $bien['id'], 'format' => 'pdf']))
 
 @section('contenu')
     <h2 class="mt-6 text-base font-bold">Bien concerné</h2>
@@ -61,7 +63,7 @@
 
     <p class="mt-5 text-[11px] text-gray-600">
         Le bien est retiré de l’inventaire actif. La ligne de mouvement correspondante reste en ajout seul :
-        elle ne peut être ni modifiée ni supprimée. Document de démonstration, non officiel.
+        elle ne peut être ni modifiée ni supprimée..
     </p>
 
     <div class="mt-10 grid grid-cols-2 gap-10 text-xs">

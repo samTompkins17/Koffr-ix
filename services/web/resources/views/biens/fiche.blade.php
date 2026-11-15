@@ -132,4 +132,6 @@
             @endif
         </section>
     </div>
+
+    @include('biens.documents')
 @endsection

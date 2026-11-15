@@ -9,7 +9,7 @@ class ControleController extends ControleurKoffr
     public function scan()
     {
         if (! $this->roleAutorise(['agent_patrimoine'])) {
-            return redirect()->route('tableau')->with('erreur', 'Le scan de contrôle est réservé aux agents du patrimoine.');
+            abort(403, 'Le scan de contrôle est réservé aux agents du patrimoine.');
         }
 
         return view('controles.scan');
@@ -47,7 +47,7 @@ class ControleController extends ControleurKoffr
         }
 
         if ($reponse->status() === 403) {
-            return redirect()->route('tableau')->with('erreur', 'Le scan de contrôle est réservé aux agents du patrimoine.');
+            abort(403, 'Le scan de contrôle est réservé aux agents du patrimoine.');
         }
 
         if (! $reponse->successful()) {
@@ -67,7 +67,7 @@ class ControleController extends ControleurKoffr
     public function enregistrer(Request $request)
     {
         if (! $this->roleAutorise(['agent_patrimoine'])) {
-            return redirect()->route('tableau')->with('erreur', 'Le scan de contrôle est réservé aux agents du patrimoine.');
+            abort(403, 'Le scan de contrôle est réservé aux agents du patrimoine.');
         }
 
         $donnees = $request->validate([

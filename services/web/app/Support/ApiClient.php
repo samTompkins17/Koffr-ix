@@ -26,27 +26,39 @@ class ApiClient
 
     public function get(string $chemin, array $parametres = []): Response
     {
-        return $this->requete()->get($chemin, $parametres);
+        return $this->requete()->get($chemin, $parametres)
+            ->onError(fn (Response $reponse) => abort_if(
+                $reponse->status() === 403, 403, 'Votre rôle ne permet pas d’accéder à cette ressource.'
+            ));
     }
 
     public function post(string $chemin, array $donnees = []): Response
     {
-        return $this->requete()->post($chemin, $donnees);
+        return $this->requete()->post($chemin, $donnees)
+            ->onError(fn (Response $reponse) => abort_if(
+                $reponse->status() === 403, 403, 'Votre rôle ne permet pas d’accéder à cette ressource.'
+            ));
     }
 
     public function put(string $chemin, array $donnees = []): Response
     {
-        return $this->requete()->put($chemin, $donnees);
+        return $this->requete()->put($chemin, $donnees)
+            ->onError(fn (Response $reponse) => abort_if(
+                $reponse->status() === 403, 403, 'Votre rôle ne permet pas d’accéder à cette ressource.'
+            ));
     }
 
     /**
      * Envoi multipart (photo de contrôle).
      */
-    public function postAvecFichier(string $chemin, array $donnees, $fichier): Response
+    public function postAvecFichier(string $chemin, array $donnees, $fichier, string $champ = 'photo'): Response
     {
         return $this->requete()
-            ->attach('photo', file_get_contents($fichier->getRealPath()), $fichier->getClientOriginalName())
-            ->post($chemin, $donnees);
+            ->attach($champ, file_get_contents($fichier->getRealPath()), $fichier->getClientOriginalName())
+            ->post($chemin, $donnees)
+            ->onError(fn (Response $reponse) => abort_if(
+                $reponse->status() === 403, 403, 'Votre rôle ne permet pas d’accéder à cette ressource.'
+            ));
     }
 
     private function requete(): PendingRequest

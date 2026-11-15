@@ -6,30 +6,30 @@
 
     // Liens réellement codés, dans l'ordre du menu des maquettes.
     $liens = [
-        ['route' => 'tableau', 'motif' => 'tableau', 'libelle' => 'Tableau de bord'],
-        ['route' => 'biens.index', 'motif' => 'biens.*', 'libelle' => 'Biens'],
-        ['route' => 'transferts.index', 'motif' => 'transferts.*', 'libelle' => 'Affectations et transferts'],
-        ['route' => 'campagnes.index', 'motif' => 'campagnes.*', 'libelle' => 'Inventaire'],
+        ['route' => 'tableau', 'motif' => 'tableau', 'libelle' => 'Tableau de bord', 'icone' => 'tableau'],
+        ['route' => 'biens.index', 'motif' => 'biens.*', 'libelle' => 'Biens', 'icone' => 'bien'],
+        ['route' => 'transferts.index', 'motif' => 'transferts.*', 'libelle' => 'Affectations et transferts', 'icone' => 'transfert'],
+        ['route' => 'campagnes.index', 'motif' => 'campagnes.*', 'libelle' => 'Inventaire', 'icone' => 'inventaire'],
     ];
 
     if (in_array($role, ['comptable_matieres', 'controleur'], true)) {
-        $liens[] = ['route' => 'ecarts.index', 'motif' => 'ecarts.*', 'libelle' => 'Écarts et rapports'];
+        $liens[] = ['route' => 'ecarts.index', 'motif' => 'ecarts.*', 'libelle' => 'Écarts et rapports', 'icone' => 'ecart'];
     }
 
-    $liens[] = ['route' => 'carte.index', 'motif' => 'carte.*', 'libelle' => 'Carte'];
+    $liens[] = ['route' => 'carte.index', 'motif' => 'carte.*', 'libelle' => 'Carte', 'icone' => 'carte'];
 
     if (in_array($role, ['admin', 'comptable_matieres', 'responsable_service'], true)) {
-        $liens[] = ['route' => 'proces-verbaux.index', 'motif' => 'proces-verbaux.*', 'libelle' => 'Procès-verbaux'];
+        $liens[] = ['route' => 'proces-verbaux.index', 'motif' => 'proces-verbaux.*', 'libelle' => 'Procès-verbaux', 'icone' => 'document'];
     }
 
-    $liens[] = ['route' => 'vue-nationale.index', 'motif' => 'vue-nationale.*', 'libelle' => 'Vue nationale'];
+    $liens[] = ['route' => 'vue-nationale.index', 'motif' => 'vue-nationale.*', 'libelle' => 'Vue nationale', 'icone' => 'monde'];
 
     if ($role === 'agent_patrimoine') {
-        $liens[] = ['route' => 'controles.scan', 'motif' => 'controles.*', 'libelle' => 'Contrôle par scan'];
+        $liens[] = ['route' => 'controles.scan', 'motif' => 'controles.*', 'libelle' => 'Contrôle par scan', 'icone' => 'scan'];
     }
 
     if (in_array($role, ['admin', 'controleur'], true)) {
-        $liens[] = ['route' => 'journal.index', 'motif' => 'journal.*', 'libelle' => 'Journal d’audit'];
+        $liens[] = ['route' => 'journal.index', 'motif' => 'journal.*', 'libelle' => 'Journal d’audit', 'icone' => 'journal'];
     }
 
     // Tous les écrans du menu sont désormais réels ; la liste reste vide.
@@ -70,12 +70,12 @@
 
     <div class="flex min-h-screen">
         {{-- Barre latérale (maquette) --}}
-        <aside class="hidden w-[280px] shrink-0 flex-col border-r border-gray-200 bg-white lg:flex">
+        <aside class="sticky top-0 hidden h-screen max-h-screen w-[280px] shrink-0 flex-col border-r border-gray-200 bg-white lg:flex">
             <div class="px-7 py-7">
                 <a href="{{ route('tableau') }}" aria-label="KOFFR-IX, tableau de bord">@include('partials.logo')</a>
             </div>
 
-            <nav class="flex-1 px-3" aria-label="Navigation principale">
+            <nav class="min-h-0 flex-1 overflow-y-auto px-3" aria-label="Navigation principale">
                 @include('partials.navigation')
             </nav>
 
@@ -103,12 +103,13 @@
             <nav class="flex gap-1 overflow-x-auto border-b border-gray-200 bg-white px-3 py-2 text-sm lg:hidden" aria-label="Navigation">
                 @foreach ($liens as $lien)
                     <a href="{{ route($lien['route']) }}"
-                       class="whitespace-nowrap rounded-lg px-3 py-2 {{ request()->routeIs($lien['motif']) ? 'bg-green-50 font-semibold text-vert' : 'text-gray-700' }}">
+                       class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 {{ request()->routeIs($lien['motif']) ? 'bg-green-50 font-semibold text-vert' : 'text-gray-700' }}">
+                        @include('partials.icone-navigation', ['icone' => $lien['icone'], 'classe' => 'h-5 w-5 shrink-0 '.(request()->routeIs($lien['motif']) ? 'text-vert' : 'text-slate-400')])
                         {{ $lien['libelle'] }}
                     </a>
                 @endforeach
                 @if ($admin)
-                    <a href="{{ route('admin.index') }}" class="whitespace-nowrap rounded-lg px-3 py-2 {{ request()->routeIs('admin.*') ? 'bg-green-50 font-semibold text-vert' : 'text-gray-700' }}">Utilisateurs et rôles</a>
+                    <a href="{{ route('admin.index') }}" class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 {{ request()->routeIs('admin.*') ? 'bg-green-50 font-semibold text-vert' : 'text-gray-700' }}">@include('partials.icone-navigation', ['icone' => 'utilisateurs', 'classe' => 'h-5 w-5 shrink-0 '.(request()->routeIs('admin.*') ? 'text-vert' : 'text-slate-400')])Utilisateurs et rôles</a>
                 @endif
             </nav>
 
@@ -118,7 +119,6 @@
             </main>
 
             <footer class="px-5 pb-8 text-xs text-gray-500 lg:px-10">
-                Maquette de démonstration · projet pédagogique, non officiel · données fictives
             </footer>
         </div>
     </div>

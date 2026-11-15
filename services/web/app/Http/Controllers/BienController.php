@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BienController extends ControleurKoffr
 {
@@ -50,8 +49,14 @@ class BienController extends ControleurKoffr
             abort(404, 'Bien introuvable.');
         }
 
+        abort_unless($reponse->successful(), 503, 'La fiche est momentanément indisponible.');
         $bien = $reponse->json();
         $mouvements = $this->api()->get('/api/patrimoine/biens/'.$id.'/mouvements')->json() ?? [];
+        $reponseDocuments = $this->api()->get('/api/patrimoine/biens/'.$id.'/documents');
+        if ($reponseDocuments->status() === 401) {
+            return $this->sessionExpiree();
+        }
+        $documents = $reponseDocuments->successful() ? $reponseDocuments->json() : [];
 
         $structureIds = array_merge(
             [$bien['structure_id'] ?? null],
@@ -61,11 +66,14 @@ class BienController extends ControleurKoffr
         $personneIds = array_merge(
             [$bien['responsable_id'] ?? null],
             array_column($mouvements, 'auteur_id'),
+            array_column($documents, 'auteur_id'),
         );
 
         return view('biens.fiche', [
             'bien' => $bien,
             'mouvements' => $mouvements,
+            'documents' => $documents,
+            'documentsIndisponibles' => ! $reponseDocuments->successful(),
             'structures' => $this->noms('/api/auth/structures', $structureIds),
             'personnes' => $this->noms('/api/auth/users', $personneIds),
         ]);
@@ -74,7 +82,7 @@ class BienController extends ControleurKoffr
     public function creer()
     {
         if (! $this->roleAutorise(['admin', 'comptable_matieres'])) {
-            return redirect()->route('biens.index')->with('erreur', 'Votre rôle ne permet pas de créer un bien.');
+            abort(403, 'Votre rôle ne permet pas de créer un bien.');
         }
 
         return view('biens.formulaire', [
@@ -86,7 +94,7 @@ class BienController extends ControleurKoffr
     public function enregistrer(Request $request)
     {
         if (! $this->roleAutorise(['admin', 'comptable_matieres'])) {
-            return redirect()->route('biens.index')->with('erreur', 'Votre rôle ne permet pas de créer un bien.');
+            abort(403, 'Votre rôle ne permet pas de créer un bien.');
         }
 
         $donnees = $this->valider($request);
@@ -103,7 +111,7 @@ class BienController extends ControleurKoffr
         }
 
         if ($reponse->status() === 403) {
-            return back()->withInput()->with('erreur', 'Votre rôle ne permet pas de créer un bien.');
+            abort(403, 'Votre rôle ne permet pas de créer un bien.');
         }
 
         if (! $reponse->successful()) {
@@ -117,7 +125,7 @@ class BienController extends ControleurKoffr
     public function modifier(string $id)
     {
         if (! $this->roleAutorise(['admin', 'comptable_matieres'])) {
-            return redirect()->route('biens.fiche', $id)->with('erreur', 'Votre rôle ne permet pas de modifier un bien.');
+            abort(403, 'Votre rôle ne permet pas de modifier un bien.');
         }
 
         $reponse = $this->api()->get('/api/patrimoine/biens/'.$id);
@@ -139,7 +147,7 @@ class BienController extends ControleurKoffr
     public function mettreAJour(Request $request, string $id)
     {
         if (! $this->roleAutorise(['admin', 'comptable_matieres'])) {
-            return redirect()->route('biens.fiche', $id)->with('erreur', 'Votre rôle ne permet pas de modifier un bien.');
+            abort(403, 'Votre rôle ne permet pas de modifier un bien.');
         }
 
         $donnees = $this->valider($request);
@@ -189,51 +197,6 @@ class BienController extends ControleurKoffr
         }
 
         return response($reponse->body(), 200, ['Content-Type' => 'image/svg+xml']);
-    }
-
-    /**
-     * Export CSV de la liste des biens (bonus).
-     */
-    public function exportCsv(): StreamedResponse
-    {
-        $lignes = [];
-        $page = 1;
-
-        do {
-            $reponse = $this->api()->get('/api/patrimoine/biens', ['page' => $page, 'per_page' => 100]);
-
-            if (! $reponse->successful()) {
-                break;
-            }
-
-            $donnees = $reponse->json();
-            $lignes = array_merge($lignes, $donnees['data']);
-            $dernierePage = $donnees['last_page'] ?? 1;
-            $page++;
-        } while ($page <= $dernierePage);
-
-        $structures = $this->noms('/api/auth/structures', array_column($lignes, 'structure_id'));
-
-        return response()->streamDownload(function () use ($lignes, $structures) {
-            $sortie = fopen('php://output', 'w');
-            fwrite($sortie, "\xEF\xBB\xBF"); // accents lisibles dans Excel
-            fputcsv($sortie, ['Code patrimoine', 'Désignation', 'Catégorie', 'Structure', 'État', 'Statut', 'Valeur (FCFA)', 'Date d’acquisition'], ';');
-
-            foreach ($lignes as $bien) {
-                fputcsv($sortie, [
-                    $bien['code_unique'],
-                    $bien['designation'],
-                    $bien['categorie'],
-                    $structures[$bien['structure_id']] ?? '',
-                    config('koffr.etats')[$bien['etat']]['libelle'] ?? $bien['etat'],
-                    $bien['statut'] === 'en_service' ? 'En service' : 'Sorti',
-                    $bien['valeur_acquisition'],
-                    substr((string) $bien['date_acquisition'], 0, 10),
-                ], ';');
-            }
-
-            fclose($sortie);
-        }, 'biens-koffr-ix-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     private function valider(Request $request): array

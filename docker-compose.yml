@@ -48,6 +48,7 @@ services:
       - ./services/patrimoine:/var/www
       - patrimoine_vendor:/var/www/vendor
       - patrimoine_storage:/var/www/storage
+      - ./docker/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
     environment:
       APP_URL: http://localhost:8080
       # URL publique encodée dans les QR codes (page de vérification du web).
@@ -90,6 +91,7 @@ services:
       - ./services/web:/var/www
       - web_vendor:/var/www/vendor
       - web_storage:/var/www/storage
+      - ./docker/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
     environment:
       APP_URL: http://localhost:8080
       # L'application web ne parle qu'à la passerelle.

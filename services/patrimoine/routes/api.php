@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BienController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\JournalAuditController;
 use App\Http\Controllers\MouvementController;
 use App\Http\Controllers\PublicController;
@@ -23,11 +24,15 @@ Route::middleware('jwt')->group(function () {
     Route::get('/biens/{id}/qrcode', [QrCodeController::class, 'svg']);
     Route::get('/biens/{id}/etiquette', [QrCodeController::class, 'etiquette']);
     Route::get('/biens/{id}/mouvements', [MouvementController::class, 'index']);
+    Route::get('/biens/{id}/documents', [DocumentController::class, 'index'])->whereUuid('id');
+    Route::get('/biens/{bienId}/documents/{documentId}', [DocumentController::class, 'download'])
+        ->whereUuid(['bienId', 'documentId']);
 
     // Écriture réservée à l'administrateur et au comptable des matières.
     Route::middleware('role:admin,comptable_matieres')->group(function () {
         Route::post('/biens', [BienController::class, 'store']);
         Route::put('/biens/{id}', [BienController::class, 'update']);
+        Route::post('/biens/{id}/documents', [DocumentController::class, 'store'])->whereUuid('id');
     });
 
     Route::get('/mouvements/en-attente', [MouvementController::class, 'enAttente'])

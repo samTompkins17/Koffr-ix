@@ -21,9 +21,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             @unless ($galerie)
-                <a href="{{ route('biens.export') }}" class="rounded-lg border border-vert px-4 py-2.5 text-sm font-semibold text-vert hover:bg-green-50">
-                    Exporter en CSV
-                </a>
+                <a href="{{ route('biens.export-pdf', $filtres) }}" class="rounded-lg border border-vert px-4 py-2.5 text-sm font-semibold text-vert hover:bg-green-50">Exporter en PDF</a>
                 @if (in_array($role, ['admin', 'comptable_matieres']))
                     <a href="{{ route('biens.creer') }}" class="rounded-lg bg-vert px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#00543F]">
                         + Nouveau bien
@@ -75,7 +73,7 @@
     </form>
 
     @if ($galerie)
-        {{-- Vue galerie : une carte par bien, sans photo (documents joints en maquette) --}}
+        <a href="{{ $lienVue('tableau') }}" class="mb-4 inline-block text-sm font-semibold text-vert underline">Passer en tableau pour sélectionner des étiquettes</a>
         @if (count($biens['data'] ?? []) > 0)
             <ul class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 @foreach ($biens['data'] as $bien)
@@ -103,10 +101,15 @@
             </div>
         @endif
     @else
-        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+        <form id="selection-etiquettes" action="{{ route('biens.etiquettes') }}" method="GET" class="mb-4 flex flex-wrap items-center gap-3">
+            <button type="submit" class="min-h-[44px] rounded-lg border border-vert bg-white px-4 py-2.5 text-sm font-semibold text-vert">Préparer les étiquettes sélectionnées</button>
+            <p class="text-sm text-gray-600">Cochez les biens de cette page.</p>
+        </form>
+        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white">
             <table class="w-full text-sm">
                 <thead class="text-left text-xs uppercase tracking-wide text-gray-600">
                     <tr class="border-b border-gray-200">
+                        <th class="px-3 py-4"><label class="flex min-h-[44px] min-w-[44px] items-center justify-center"><input id="selection-tout" type="checkbox" aria-label="Sélectionner tous les biens de cette page" class="h-5 w-5 accent-[#006A4F]"></label></th>
                         <th class="px-5 py-4">Code patrimoine</th>
                         <th class="px-5 py-4">Désignation</th>
                         <th class="px-5 py-4">Catégorie</th>
@@ -118,6 +121,7 @@
                 <tbody>
                     @forelse ($biens['data'] as $bien)
                         <tr class="border-b border-gray-100 hover:bg-gray-50">
+                            <td class="px-3 py-4"><label class="flex min-h-[44px] min-w-[44px] items-center justify-center"><input type="checkbox" form="selection-etiquettes" name="ids[]" value="{{ $bien['id'] }}" aria-label="Sélectionner {{ $bien['code_unique'] }}" class="h-5 w-5 accent-[#006A4F]"></label></td>
                             <td class="px-5 py-4 font-mono text-xs">
                                 <a href="{{ route('biens.fiche', $bien['id']) }}" class="font-semibold text-vert underline">{{ $bien['code_unique'] }}</a>
                             </td>
@@ -129,7 +133,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-5 py-12 text-center text-gray-500">Aucun bien ne correspond à ces critères.</td>
+                            <td colspan="7" class="px-5 py-12 text-center text-gray-500">Aucun bien ne correspond à ces critères.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -156,4 +160,15 @@
             @endif
         </div>
     </div>
+    @unless ($galerie)
+        <script>
+            const casesBiens = [...document.querySelectorAll('input[name="ids[]"]')];
+            const selectionTout = document.getElementById('selection-tout');
+            selectionTout.addEventListener('change', () => casesBiens.forEach(caseBien => { caseBien.checked = selectionTout.checked; }));
+            casesBiens.forEach(caseBien => caseBien.addEventListener('change', () => {
+                selectionTout.checked = casesBiens.every(element => element.checked);
+                selectionTout.indeterminate = !selectionTout.checked && casesBiens.some(element => element.checked);
+            }));
+        </script>
+    @endunless
 @endsection

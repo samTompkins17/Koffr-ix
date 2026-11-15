@@ -13,10 +13,9 @@
             <h1 class="text-3xl font-extrabold">Écarts et rapports</h1>
             <p class="mt-1 text-gray-600">Différences constatées entre la fiche et le terrain. Le contrôle reste en ajout seul.</p>
         </div>
-        <a href="{{ route('ecarts.export', array_filter(['campagne' => $campagneFiltree])) }}"
-           class="rounded-lg border border-vert px-5 py-2.5 text-sm font-semibold text-vert hover:bg-green-50">
-            Exporter en CSV
-        </a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('ecarts.export-pdf', array_filter(['campagne' => $campagneFiltree])) }}" class="rounded-lg border border-vert px-4 py-2.5 text-sm font-semibold text-vert hover:bg-green-50">Exporter en PDF</a>
+        </div>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-3">

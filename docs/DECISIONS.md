@@ -1,7 +1,10 @@
 # Journal des décisions techniques
 
 Ce fichier consigne les points non tranchés par `AGENTS.md`, tranchés selon la règle
-« la solution la plus simple », conformément à la section 1.
+« la solution la plus simple », conformément à la section 1. Il décrit **l'état final** du
+projet : quand une décision a été révisée en cours de route, seule la version retenue est
+conservée (voir les sections 14, 15, 18 et 19, mises à jour après l'extension de périmètre
+des sections 20 et 21).
 
 ## 1. Emplacement des documents de référence
 
@@ -32,18 +35,22 @@ via Vite et fichier CSS statique.
 
 ## 5. Vérification du JWT dans chaque service
 
-Le middleware `App\Http\Middleware\VerifierJwt` est copié à l'identité dans `auth`,
+Le middleware `App\Http\Middleware\VerifierJwt` est copié à l'identique dans `auth`,
 `patrimoine` et `inventaire`. Il décode le jeton avec `PHPOpenSourceSaver/JWTAuth` et place
 `sub`, `name`, `role`, `structure_id`, `ministere_code` dans les attributs de la requête.
 Aucun appel à `auth`. Le guard `api` (driver `jwt`) n'est utilisé que dans `auth`, pour la
 connexion et le rafraîchissement.
 
+Limite assumée : le jeton est signé en HS256 avec un secret partagé (`JWT_SECRET`). Tout
+service qui connaît le secret pourrait fabriquer un jeton. En production, on passerait à une
+paire de clés (RS256) : `auth` garderait la clé privée, les autres services la seule clé publique.
+
 ## 6. Journal d'audit dupliqué par service
 
 `journal_audit` existe dans `auth`, `patrimoine` et `inventaire`. Chaque service écrit les
 événements qui le concernent (connexion et accès refusé dans `auth`, création et mouvements
-dans `patrimoine`, contrôles dans `inventaire`). Les journaux ne sont jamais fusionnés :
-l'interface de consultation reste une maquette.
+dans `patrimoine`, contrôles dans `inventaire`). Les journaux ne sont jamais fusionnés en base :
+l'écran de consultation (section 20) interroge les trois séparément.
 
 ## 7. Identifiants fixes dans les seeders
 
@@ -93,19 +100,21 @@ Deux corrections nécessaires en démonstration :
 
 Étiquette 80 × 50 mm, mention « République Togolaise » en texte, code patrimoine, désignation,
 catégorie et QR code. Le bloc blason n'y figure pas (choix du développeur autorisé par la
-section 10 de `AGENTS.md`) pour rester lisible à cette taille.
+section 10 de `AGENTS.md`) pour rester lisible à cette taille. L'impression se fait bien par
+bien ; la planche d'étiquettes par lot de la maquette n'est pas codée (section 22).
 
-## 14. Écarts : traitement hors périmètre
+## 14. Écarts : lecture, puis traitement
 
-Les écarts sont en lecture seule : aucune route d'écriture, aucun formulaire de traitement.
-La page rappelle que le traitement d'un écart est une maquette.
+Version finale : la liste des écarts est lue par le comptable et le contrôleur ; **le traitement
+d'un écart est codé** et réservé au comptable (voir section 21). Le contrôleur reste en lecture
+seule. (La première version, en lecture seule pour tous, a été remplacée lors de l'extension de
+périmètre.)
 
 ## 15. Annuaire administrateur
 
 `GET /api/auth/annuaire` est réservé au rôle `admin`. Il sert la page Administration
-(comptes et structures, lecture seule). Il ne renvoie ni e-mail ni mot de passe.
-`GET /users?ids=` reste limité à `id` et `name`. La création de comptes n'est pas
-codée : elle reste une maquette, comme indiqué à la section 2 d'`AGENTS.md`.
+(comptes et structures). Il ne renvoie ni e-mail ni mot de passe. `GET /users?ids=` reste
+limité à `id` et `name`. La création de comptes et de structures est codée (section 21).
 
 ## 16. Photos de contrôle
 
@@ -121,6 +130,17 @@ Le compose injecte ces identifiants par service : même si un service était com
 il ne peut lire ni écrire la base d'un autre. C'est l'amélioration facultative de la
 section 5 d'`AGENTS.md`, retenue pour renforcer l'étanchéité.
 
+`GRANT ALL ON DATABASE` ne couvre pas les objets : les tables créées avant le
+changement d'identifiants restent la propriété de `koffr`. Chaque base reçoit donc
+aussi `GRANT ALL ON SCHEMA public`, `GRANT ALL ON ALL TABLES/SEQUENCES IN SCHEMA public`
+et `ALTER DEFAULT PRIVILEGES FOR ROLE koffr` pour les futures tables, sans quoi les
+services dédiés lèvent « permission denied ».
+
+Limites assumées : les trois bases partagent une seule instance PostgreSQL (une panne de
+l'instance arrête les trois services) ; les mots de passe de démonstration sont écrits dans
+`docker-compose.yml` et `init.sql`. En production, ils viendraient de variables d'environnement
+ou d'un gestionnaire de secrets, et chaque base aurait sa propre instance.
+
 ## 18. Interface alignée sur les maquettes
 
 La couche web reprend la structure des maquettes plutôt que des écrans génériques :
@@ -129,29 +149,25 @@ connexion et vérification publique en écran scindé (blason + accroche à gauc
 tableau de bord à cartes et barres ; liste des biens avec colonne valeur et pagination
 « Affichage de X à Y sur N biens » ; fiche avec bandeau d'informations, étiquette QR et frise
 d'historique ; formulaire avec bandeau d'erreurs et aperçu d'étiquette ; page unique
-« Affectations et transferts » ; inventaire en cartes de progression avec formulaire intégré ;
-page globale « Écarts et rapports » (export CSV) ; écrans mobiles avec en-tête vert et filet jaune.
+« Affectations et transferts » avec panneau « À valider » ; inventaire en cartes de progression
+avec formulaire intégré ; page globale « Écarts et rapports » (export CSV) ; écrans mobiles avec
+en-tête vert et filet jaune. Tous les liens du menu mènent à un écran codé.
 
-Éléments de maquette volontairement non codés, faute de règle métier ou de route d'écriture :
-panneau « À valider » du transfert (le mouvement est immédiat, l'API ne gère pas de validation
-différée), colonne « Traiter » des écarts, exports Excel/PDF, taux d'inventaire par structure
-(l'API ne fournit pas ce croisement) et « Mot de passe oublié ? » (aucun envoi d'e-mail).
-Les entrées de menu Carte, Procès-verbaux, Vue nationale et Journal d'audit figurent dans la barre
-latérale comme libellés désactivés marqués « maquette » (pas de lien, pas d'action) : la navigation
-reste fidèle aux maquettes sans laisser croire que ces écrans existent.
+Éléments de maquette non codés (voir la liste complète à la section 22) : exports Excel et PDF
+(seul le CSV existe), « Mot de passe oublié ? » (aucun envoi d'e-mail), documents joints,
+planche d'étiquettes, mode hors ligne.
 
 ## 19. Administration : trois onglets
 
 La page `/administration` reprend la maquette « Utilisateurs, rôles et structures » et ses trois
 onglets (`?onglet=utilisateurs|roles|structures`, onglet inconnu ramené à « Utilisateurs ») :
 comptes (nom, rôle, structure, actif), matrice des droits et structures. La matrice applique la
-section 6 d'`AGENTS.md` ; les lignes Validation d'un transfert, Traitement d'un écart, Génération de
-procès-verbaux et Journal d'audit sont marquées † car leurs écrans ne sont pas codés.
-« Biens rattachés » vient de `par_structure` ajouté à `GET /api/patrimoine/stats` (un seul appel,
-jamais un comptage par ligne). « Responsable » affiche le compte `responsable_service` rattaché à la
-structure : le modèle `structures` n'a pas de champ responsable. Les structures n'ayant pas de champ
-d'activation, leur statut affiché est « Active » (elles existent dans l'annuaire). Le bouton
-« Créer un compte » est présent mais désactivé : la création de comptes reste une maquette.
+section 6 d'`AGENTS.md` et reflète les contrôles réellement appliqués par les services (elle ne
+porte plus de lignes « maquette »). « Biens rattachés » vient de `par_structure` ajouté à
+`GET /api/patrimoine/stats` (un seul appel, jamais un comptage par ligne). « Responsable »
+affiche le compte `responsable_service` rattaché à la structure : le modèle `structures` n'a pas
+de champ responsable. Les structures n'ayant pas de champ d'activation, leur statut affiché est
+« Active ». Le bouton « Créer un compte » est actif (section 21).
 
 ## 20. Extension de périmètre : écrans de consultation
 
@@ -163,18 +179,19 @@ et les procès-verbaux ne sont plus des maquettes.
   agrégation en base. Réservé à l'administrateur et au contrôleur (lecture).
 - **Carte** : Leaflet et fond OpenStreetMap chargés par CDN côté navigateur ; seuls les biens portant
   `latitude`/`longitude` sont affichés. Les cinq biens de démonstration reçoivent des coordonnées de
-  Lomé dans le seeder, et la base de démonstration a été mise à jour sans réinitialisation.
+  Lomé dans le seeder.
 - **Vue nationale** : croisement réalisé par le web (auth fournit la hiérarchie des structures via
   `GET /api/auth/hierarchie` ; patrimoine fournit `par_structure` et `valeur_par_structure` ;
   inventaire fournit les campagnes avec leurs compteurs). Aucun service ne lit la base d'un autre.
   Le taux compare les constats au nombre de biens du ministère, sous-structures comprises.
 - **Procès-verbaux** : générés à la demande depuis les données existantes (aucune table, donc rien
   à modifier ni à supprimer) ; PV d'inventaire par campagne et PV de sortie par bien sorti, sur une
-  mise en page A4 imprimable avec blason, référence et blocs de signature. Mention explicite de
-  document de démonstration.
-- La matrice des rôles de la page Administration garde ses lignes † (validation d'un transfert,
-  traitement d'un écart, PV, journal) ; journal et PV étant désormais codés, leurs lignes seront
-  mises à jour lors de l'étape suivante (validation, traitement d'écart, création de comptes).
+  mise en page A4 imprimable (impression navigateur ou PDF serveur depuis le 14 nov.) avec blason,
+  référence et blocs de signature. Le layout commun est `layouts.impression` pour l'aperçu navigateur
+  et les variantes PDF : feuille A4 avec marges de 18 mm, en-tête républicain centré, blason officiel
+  source non modifié à 22 mm minimum, titre et référence centrés, puis pied daté. Le corps utilise la
+  police à empattements de la maquette au lieu d'Inter, réservée à l'interface ; cet écart est voulu
+  pour les documents officiels imprimables. Les sommes sont formatées avec des espaces insécables.
 
 ## 21. Validation, traitement d'écart et création de comptes
 
@@ -190,18 +207,53 @@ Trois écrans d'écriture issus de l'extension de périmètre (AGENTS.md, 13 nov
 - **Traitement d'un écart** : table `traitements_ecart` (ajout seul, un traitement par contrôle)
   avec l'action (régularisé, réformé, main levée, autre), le commentaire et l'auteur. Le constat
   d'origine n'est jamais modifié ; la liste affiche la décision, son auteur et sa date, et l'export
-  CSV ajoute une colonne « Traitement ». Réservé au comptable ; le contrôleur reste en lecture.
+  Réservé au comptable ; le contrôleur reste en lecture.
 - **Création de comptes et de structures** : deux routes d'auth réservées à l'administrateur.
   Le mot de passe est haché par le cast du modèle et n'est jamais renvoyé ni journalisé ; l'action
-  `creation_compte` / `creation_structure` est tracée dans le journal d'auth. La matrice des rôles
-  de la page Administration ne porte plus de lignes « maquette » : les droits affichés
-  correspondent aux contrôles réellement appliqués par les services.
-## 22. Gabarit commun des procès-verbaux : étape 1
+  `creation_compte` / `creation_structure` est tracée dans le journal d'auth.
 
-Les aperçus imprimables et les variantes PDF réutilisent `layouts.impression`. Le gabarit
-prévoit le format A4 avec marges de 18 mm, un en-tête républicain centré, le blason source non
-modifié à 22 mm minimum, puis le titre et la référence centrés et un pied de page daté. Le corps
-des PV reprend la typographie à empattements de la maquette, contrairement à Inter dans
-l'interface : cet écart est volontaire et limité aux documents officiels imprimables.
-`DateEnLettres::dateEnLettres()` et ses tests sont ajoutés. Les routes, références et données
-métier des procès-verbaux restent inchangées à cette étape.
+## 22. Périmètre non codé (maquette seulement)
+
+Écrans ou fonctions présents dans les maquettes mais volontairement non codés, faute de temps ou
+parce qu'`AGENTS.md` les exclut :
+
+| Élément | Raison |
+|---|---|
+| Mode hors ligne mobile | Explicitement laissé de côté le 14 nov. ; le scan exige le réseau |
+| « Mot de passe oublié ? » | Explicitement laissé de côté le 14 nov. ; aucun envoi d'e-mail |
+
+Depuis le 14 nov., documents joints (dont photos), planches d'étiquettes, exports PDF, page 403 et gabarit commun d'impression des procès-verbaux sont inclus. Le gabarit s'imprime en A4 et ne persiste aucun PV. Une photo jointe se télécharge comme document privé ; elle ne remplace pas automatiquement la vignette de la galerie.
+
+## 23. Limites assumées
+
+- Secret JWT partagé en HS256 (section 5).
+- Une seule instance PostgreSQL et mots de passe de démonstration en clair (section 17).
+- Le scan par caméra exige HTTPS ou `localhost` ; la saisie manuelle du code reste toujours
+  disponible.
+- Données fictives uniquement ; le cadre togolais de protection des données personnelles reste à
+  vérifier avant toute mise en service réelle.
+
+## 24. Documents privés, exports PDF et planches (14 novembre 2026)
+
+Le développeur confirme ces quatre ajouts et laisse explicitement hors ligne et mot de passe oublié de côté.
+
+- Documents : table `documents` dans `patrimoine_db`, métadonnées en ajout seul ; fichiers nommés aléatoirement dans `storage/app/private/documents`, couvert par `patrimoine_storage`. PDF/JPG/PNG, validation du contenu et de l'extension, 10 Mo maximum. Seuls admin/comptable ajoutent ; tout utilisateur connecté peut télécharger via le web et la passerelle. Aucun chemin privé dans le JSON, aucun lien public, aucune suppression/remplacement. Journalisation de l'ajout dans patrimoine. L'absence d'antivirus implique des fichiers fictifs fiables en démonstration ; analyse antimalware à prévoir en production.
+
+- PDF : Dompdf dans le web, ressources distantes et scripts désactivés, tableaux et PV générés à la demande sans nouvelle table. Polices locales DejaVu Sans dans les PDF pour préserver les accents ; Inter reste la police de l'interface.
+
+## 25. Procès-verbaux : gabarit commun aligné sur la maquette
+
+Première étape réalisée : les aperçus imprimables et les variantes PDF réutilisent désormais
+`layouts.impression`. Le gabarit est A4 (`@page`, marges de 18 mm), avec le blason officiel source
+non modifié à 22 mm minimum, centré sur fond blanc, suivi de « RÉPUBLIQUE TOGOLAISE », du titre et
+de la référence centrés, puis du pied de page daté. Les introductions et les données métier restent
+inchangées à cette étape ; `DateEnLettres::dateEnLettres()` et ses tests préparent leur rédaction
+en toutes lettres à l’étape suivante.
+
+La maquette emploie une police à empattements pour le corps des PV, contrairement à Inter dans
+l’interface. Cet écart est volontaire et limité aux documents imprimables ; le corps reste sobre
+et aucune information ne repose sur la couleur. L’étape 1 ne change ni les routes, ni les
+références, ni les données métier des PV.
+- Planches : sélection explicite de 1 à 100 biens ; 12 emplacements de 105 × 48 mm sur A4, plusieurs pages si nécessaire. Aperçu, PDF et ZIP des pages SVG ; QR issus de patrimoine. L'étiquette unitaire 80 × 50 mm reste inchangée. Les désignations longues sont abrégées sur papier, jamais le code.
+- Refus : vraie réponse HTTP 403 avec page dédiée, rôle affiché et retour au tableau de bord. Les refus API restent journalisés par le service concerné ; un refus local du web n'est pas annoncé comme journalisé.
+- Infrastructure : limites PHP à 10 Mo par fichier et 12 Mo par requête, Nginx à 12 Mo, sans ajout de service. Les volumes existants sont conservés.

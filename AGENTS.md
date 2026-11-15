@@ -36,7 +36,9 @@ En cas de conflit, l'ordre de priorité est : ce fichier, puis le cahier des cha
 - validation d'un transfert par le responsable (le mouvement passe par `statut_validation` `en_attente` puis `valide`)
 - création de comptes et de structures par l'administrateur
 
-Restent **toujours en maquette seulement (ne pas coder)** : documents joints, mode hors ligne.
+**Extension confirmée le 14 nov. 2026** : coder les documents joints aux biens (PDF, JPG, PNG, 10 Mo maximum, ajout seul, ajout par admin/comptable et lecture authentifiée), la planche d'étiquettes A4 (12 étiquettes de 105 × 48 mm), les exports Excel/PDF des biens et écarts, les PV PDF et la page d'accès refusé dédiée. Les documents restent privés dans le volume du service `patrimoine`, sans nouveau service.
+
+Restent **en maquette seulement (ne pas coder)** : mode hors ligne et mot de passe oublié, conformément au choix explicite du développeur.
 
 ## 3. Stack et contraintes imposées
 
@@ -44,7 +46,7 @@ Restent **toujours en maquette seulement (ne pas coder)** : documents joints, mo
 - Architecture micro-services : `auth`, `patrimoine`, `inventaire`, plus l'application web `web`. Pas de `document-service` : les photos de contrôle sont stockées dans un volume Docker du service `inventaire`.
 - PostgreSQL 16, une base par service. Aucun service ne lit la base d'un autre.
 - JWT avec `php-open-source-saver/jwt-auth` (pas `tymon/jwt-auth`, non maintenu). Signature HS256 avec un secret partagé `JWT_SECRET`.
-- Application web : Blade + Tailwind. QR codes : `simplesoftwareio/simple-qrcode` (génération), `html5-qrcode` (scan).
+- Application web : Blade + Tailwind. QR codes : `simplesoftwareio/simple-qrcode` (génération), `html5-qrcode` (scan). Exports du web : `openspout/openspout` (XLSX), `dompdf/dompdf` (PDF).
 - Docker et Docker Compose, un conteneur par service.
 
 ## 4. État actuel de l'environnement (déjà en place et fonctionnel)
@@ -118,6 +120,7 @@ Basé sur `02-classes.mmd`. Toutes les clés primaires sont des **UUID** (`HasUu
 - `biens` : `id`, `code_unique` (unique, immuable), `designation`, `categorie` (Matériel informatique, Mobilier, Immeubles, Véhicules, Autres), `valeur_acquisition`, `date_acquisition`, `etat` (`bon`, `usage`, `hors_service`), `statut` (`en_service`, `sorti`), `latitude`, `longitude`, `localisation` (texte), `structure_id`, `responsable_id`, horodatages.
 - `mouvements` (**ajout seul**) : `id`, `bien_id`, `type` (`affectation`, `transfert`, `maintenance`, `sortie`), `date`, `structure_origine_id`, `structure_destination_id`, `motif`, `statut_validation` (valeur `valide` par défaut), `auteur_id`.
 - `sequences_code` : `ministere_code`, `annee`, `dernier_numero` (pour la génération atomique).
+- `documents` (ajout seul) : `id`, `bien_id`, `type` (`facture`, `acte`, `titre`, `photo`, `autre`), `nom_original`, `chemin` privé (jamais dans le JSON), `mime_type`, `taille`, `auteur_id`, horodatages. Fichiers dans le volume de `patrimoine`.
 - `journal_audit` (ajout seul) : `id`, `utilisateur_id`, `action`, `objet`, `date`, `detail`. Prévoir aussi la même table dans `auth_db` pour les événements de connexion, de création de compte et d'accès refusé. Chaque service écrit dans son propre journal ; on ne les fusionne pas (l'interface du journal reste en maquette seulement). À consigner dans `docs/DECISIONS.md`.
 
 **inventaire_db**
@@ -128,8 +131,8 @@ Basé sur `02-classes.mmd`. Toutes les clés primaires sont des **UUID** (`HasUu
 
 ## 8. Règles métier et contraintes d'ajout seul
 
-- Aucune route de modification ni de suppression sur `mouvements`, `controles` et `journal_audit`. En plus, les modèles lèvent une exception sur `update` et `delete`.
-- Transfert : en une seule transaction, créer le mouvement et mettre à jour `structure_id` et `responsable_id` du bien. La destination et le motif sont obligatoires. Pas de validation préalable (statut `valide` direct).
+- Aucune route de modification ni de suppression sur `mouvements`, `controles`, `documents` et `journal_audit`. En plus, les modèles lèvent une exception sur `update` et `delete`.
+- Transfert et affectation : le mouvement est créé `statut_validation` `en_attente` (destination et motif obligatoires) ; la structure du bien ne change qu'à la validation par un responsable de service (`validations_mouvement`, ajout seul : décision, décideur, motif). Un refus laisse le bien en place. Sortie et maintenance : immédiates (`valide`).
 - Sortie (réforme, cession, perte) : mouvement `sortie` et `statut = sorti`. Maintenance : mouvement seul.
 - Écart : à l'enregistrement d'un contrôle, `inventaire` lit la fiche dans `patrimoine`, copie `etat_fiche`, compare avec `etat_constate` et positionne `ecart_detecte`. Un seul contrôle par bien et par campagne (sinon 409).
 - Le contrôleur n'a aucune route d'écriture.
@@ -148,6 +151,7 @@ Réponses d'erreur : `{"message": "...", "errors": {...}}`, codes HTTP standards
 - `GET /biens/code/{code}` (utilisé par le scan et par `inventaire`)
 - `GET /biens/{id}/qrcode` (SVG), `GET /biens/{id}/etiquette` (étiquette imprimable)
 - `POST /biens/{id}/mouvements`, `GET /biens/{id}/mouvements` (du plus récent au plus ancien)
+- `GET /biens/{id}/documents`, `POST /biens/{id}/documents` (multipart, admin/comptable), `GET /biens/{bienId}/documents/{documentId}` (téléchargement authentifié)
 - Bonus : `GET /public/biens/{code}` (sans authentification, donne seulement : bien de l'État, immatriculé, catégorie, ministère de rattachement ; aucune valeur, aucun responsable, aucune localisation précise), `GET /stats`.
 - `GET /ping`
 
@@ -172,7 +176,6 @@ Pages à coder : connexion, liste des biens (filtres et recherche), fiche d'un b
 **Charte et accessibilité**
 - Couleurs : vert `#006A4F`, rouge `#D11135`, jaune `#FFCF11`, noir et blanc. Police Inter. Contraste d'au moins 4,5.
 - Un statut n'est jamais indiqué par la couleur seule : toujours une icône ou un texte (`✓ Bon`, `▲ Usagé`, `● Hors service`, `✕ Écart`).
-- Pied de page : « Maquette de démonstration · projet pédagogique, non officiel · données fictives ».
 - Blason de la République : n'utiliser que `docs/assets/blason-republique-togolaise.svg` (bloc complet : blason, mention « République Togolaise », filet vert). Ne jamais le redessiner ni le modifier. Hauteur minimale 22 mm, zone de protection respectée, jamais sur fond vert ni noir, jamais à l'intérieur du logo KOFFR-IX. Si le fichier manque, mettre un emplacement texte.
 - Identité KOFFR-IX : un seul composant d'en-tête (symbole K + mot « KOFFR-IX ») utilisé sur toutes les pages, `favicon.svg` dans `<head>`. Le nom « GEPAT » ne doit apparaître nulle part dans l'interface ni dans les messages. Étiquettes imprimées : mention « République Togolaise » en texte et QR code ; le bloc blason n'y figure que si le développeur le décide.
 
@@ -210,7 +213,7 @@ Un commit par étape terminée, tests au vert avant de continuer.
 
 - **Secret JWT partagé (HS256)** : tout service compromis pourrait fabriquer de faux jetons. Suffisant pour la démonstration ; en production, clé privée dans `auth` seul et clé publique (RS256) dans les autres services.
 - **Une seule instance PostgreSQL** avec trois bases (une par service) ; l'étanchéité repose sur la discipline du code, ou sur les rôles dédiés si l'option est faite.
-- **Transferts sans validation** par le responsable de service (maquette seulement).
+- **Validation des transferts** : tout responsable de service connecté peut valider ou refuser un mouvement en attente, quelle que soit sa structure (simplification assumée pour la démonstration ; en production, le responsable de la structure de destination).
 - **Photos de contrôle** dans un volume du service `inventaire`, sans `document-service`. Dans les schémas 04 et 05, `document-service` doit être aligné (en pointillé, optionnel, ou retiré).
 - **Résilience partielle** : voir section 5.
 - Données fictives, projet non officiel, QR et étiquettes de démonstration.

@@ -40,6 +40,7 @@
                             <a href="{{ route('proces-verbaux.inventaire', $campagne['id']) }}" class="font-semibold text-vert underline">
                                 Générer le PV
                             </a>
+                            <a href="{{ route('proces-verbaux.inventaire', ['campagne' => $campagne['id'], 'format' => 'pdf']) }}" class="ml-3 font-semibold text-vert underline">Télécharger PDF</a>
                         </td>
                     </tr>
                 @empty
@@ -72,6 +73,7 @@
                             <a href="{{ route('proces-verbaux.sortie', $bien['id']) }}" class="font-semibold text-vert underline">
                                 Générer le PV
                             </a>
+                            <a href="{{ route('proces-verbaux.sortie', ['bien' => $bien['id'], 'format' => 'pdf']) }}" class="ml-3 font-semibold text-vert underline">Télécharger PDF</a>
                         </td>
                     </tr>
                 @empty

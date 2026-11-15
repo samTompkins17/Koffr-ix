@@ -15,8 +15,7 @@ class JournalController extends ControleurKoffr
     public function index(Request $request)
     {
         if (! $this->roleAutorise(['admin', 'controleur'])) {
-            return redirect()->route('tableau')
-                ->with('erreur', 'Le journal d’audit est réservé à l’administrateur et au contrôleur.');
+            abort(403, 'Le journal d’audit est réservé à l’administrateur et au contrôleur.');
         }
 
         $filtre = (string) $request->query('action', '');
