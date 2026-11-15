@@ -1,0 +1,383 @@
+openapi: 3.0.3
+info:
+  title: KOFFR-IX — service patrimoine
+  version: 1.0.0
+  description: |
+    Biens, code patrimoine unique, QR codes et mouvements (ajout seul).
+    Le JWT est vérifié localement ; les liens vers les personnes et structures sont des UUID.
+servers:
+  - url: http://localhost:8080/api/patrimoine
+    description: Via la passerelle Nginx
+security:
+  - bearerAuth: []
+paths:
+  /biens:
+    get:
+      summary: Liste paginée des biens
+      parameters:
+        - { name: q, in: query, description: 'Recherche sur la désignation ou le code', schema: { type: string } }
+        - { name: categorie, in: query, schema: { type: string } }
+        - { name: etat, in: query, schema: { type: string, enum: [bon, usage, hors_service] } }
+        - { name: structure_id, in: query, schema: { type: string, format: uuid } }
+        - { name: ids, in: query, description: 'UUID séparés par des virgules (appel groupé)', schema: { type: string } }
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+        - { name: per_page, in: query, schema: { type: integer, default: 15, maximum: 100 } }
+      responses:
+        '200':
+          description: Page de biens (format paginator Laravel)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  current_page: { type: integer }
+                  last_page: { type: integer }
+                  total: { type: integer }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Bien' }
+        '401': { $ref: '#/components/responses/NonAuthentifie' }
+    post:
+      summary: Créer un bien (admin, comptable)
+      description: Le code patrimoine est généré (PAT-{ministère}-{année}-{0000}) et immuable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [designation, categorie, valeur_acquisition, date_acquisition, etat, structure_id]
+              properties:
+                designation: { type: string }
+                categorie: { type: string, example: Matériel informatique }
+                valeur_acquisition: { type: integer, description: FCFA }
+                date_acquisition: { type: string, format: date }
+                etat: { type: string, enum: [bon, usage, hors_service] }
+                localisation: { type: string, nullable: true }
+                structure_id: { type: string, format: uuid }
+                responsable_id: { type: string, format: uuid, nullable: true }
+                latitude: { type: number, nullable: true }
+                longitude: { type: number, nullable: true }
+      responses:
+        '201':
+          description: Bien créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bien' }
+        '401': { $ref: '#/components/responses/NonAuthentifie' }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '422': { $ref: '#/components/responses/Validation' }
+  /biens/{id}:
+    get:
+      summary: Fiche d'un bien
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: Bien
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bien' }
+        '404': { $ref: '#/components/responses/Introuvable' }
+    put:
+      summary: Modifier un bien (admin, comptable)
+      description: Le champ `code_unique` est ignoré : le code reste immuable.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BienModifiable' }
+      responses:
+        '200':
+          description: Bien mis à jour
+        '403': { $ref: '#/components/responses/Interdit' }
+        '422': { $ref: '#/components/responses/Validation' }
+  /biens/{id}/documents:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    get:
+      summary: Documents privés du bien (tous les utilisateurs authentifiés)
+      responses:
+        '200':
+          description: Métadonnées, sans chemin de stockage
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Document' }
+        '401': { $ref: '#/components/responses/NonAuthentifie' }
+        '404': { $ref: '#/components/responses/Introuvable' }
+    post:
+      summary: Ajouter un document (admin, comptable)
+      description: Ajout seul, sans remplacement ni suppression. PDF/JPG/PNG, maximum 10 Mo.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [type, fichier]
+              properties:
+                type: { type: string, enum: [facture, acte, titre, photo, autre] }
+                fichier: { type: string, format: binary }
+      responses:
+        '201':
+          description: Document ajouté et journalisé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Document' }
+        '401': { $ref: '#/components/responses/NonAuthentifie' }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '404': { $ref: '#/components/responses/Introuvable' }
+        '413': { description: Corps de requête supérieur à la limite de 12 Mo }
+        '422': { $ref: '#/components/responses/Validation' }
+  /biens/{bienId}/documents/{documentId}:
+    get:
+      summary: Télécharger un document privé du bien
+      parameters:
+        - { name: bienId, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: documentId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Fichier joint (Content-Disposition attachment, nosniff, cache privé)
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            image/jpeg:
+              schema: { type: string, format: binary }
+            image/png:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/NonAuthentifie' }
+        '404': { $ref: '#/components/responses/Introuvable' }
+  /biens/code/{code}:
+    get:
+      summary: Recherche par code patrimoine (scan, appel interne)
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: Bien
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Bien' }
+        '404': { $ref: '#/components/responses/Introuvable' }
+  /biens/{id}/qrcode:
+    get:
+      summary: QR code du bien (SVG)
+      description: Le QR code encode l'URL publique de vérification.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: Image SVG
+          content:
+            image/svg+xml:
+              schema: { type: string }
+  /biens/{id}/etiquette:
+    get:
+      summary: Étiquette imprimable (HTML)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: HTML 80 × 50 mm
+          content:
+            text/html:
+              schema: { type: string }
+  /biens/{id}/mouvements:
+    get:
+      summary: Historique des mouvements (du plus récent au plus ancien)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200':
+          description: Mouvements
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Mouvement' }
+    post:
+      summary: Déclarer un mouvement (comptable, responsable)
+      description: |
+        Transfert ou affectation : en une transaction, le mouvement est créé puis la structure
+        (et le responsable si fourni) du bien est mise à jour. Sortie : le bien passe à `sorti`.
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [affectation, transfert, maintenance, sortie] }
+                structure_destination_id: { type: string, format: uuid, description: Obligatoire pour affectation et transfert }
+                motif: { type: string, description: Obligatoire sauf pour maintenance }
+                responsable_id: { type: string, format: uuid, nullable: true }
+                date: { type: string, format: date-time, nullable: true }
+      responses:
+        '201':
+          description: Mouvement créé
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Mouvement' }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '422': { $ref: '#/components/responses/Validation' }
+  /mouvements/recents:
+    get:
+      summary: Derniers mouvements, avec le code et la désignation du bien
+      parameters:
+        - { name: limite, in: query, schema: { type: integer, default: 5, maximum: 20 } }
+      responses:
+        '200':
+          description: Mouvements du plus récent au plus ancien
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Mouvement' }
+  /mouvements/en-attente:
+    get:
+      summary: Mouvements en attente de validation
+      responses:
+        '200': { description: Mouvements avec bien_code et bien_designation }
+  /mouvements/{id}/valider:
+    post:
+      summary: Validation d'un transfert par le responsable (met à jour la structure)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Mouvement validé }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '409': { description: Mouvement déjà traité }
+  /mouvements/{id}/refuser:
+    post:
+      summary: Refus par le responsable (la structure ne change pas)
+      parameters: [{ name: id, in: path, required: true, schema: { type: string, format: uuid } }]
+      responses:
+        '200': { description: Mouvement refusé }
+        '403': { $ref: '#/components/responses/Interdit' }
+        '409': { description: Mouvement déjà traité }
+  /stats:
+    get:
+      summary: Compteurs du tableau de bord
+      responses:
+        '200':
+          description: Compteurs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  en_service: { type: integer }
+                  sortis: { type: integer }
+                  valeur_totale: { type: integer }
+                  par_etat: { type: object }
+                  par_categorie: { type: object }
+                  par_structure: { type: object, description: nombre de biens par structure_id }
+  /public/biens/{code}:
+    get:
+      summary: Vérification publique d'un bien (sans authentification)
+      description: |
+        Ne renvoie que : bien de l'État, immatriculation, catégorie et code du ministère.
+        Aucune valeur, aucun responsable, aucune localisation précise.
+      security: []
+      parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+      responses:
+        '200':
+          description: Bien vérifié
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bien_de_l_etat: { type: boolean, example: true }
+                  immatriculation: { type: string, example: PAT-SAN-2026-0412 }
+                  categorie: { type: string }
+                  ministere_code: { type: string, example: SAN }
+        '404': { $ref: '#/components/responses/Introuvable' }
+  /ping:
+    get:
+      summary: Disponibilité
+      security: []
+      responses:
+        '200': { description: OK }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    Document:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        bien_id: { type: string, format: uuid }
+        type: { type: string, enum: [facture, acte, titre, photo, autre] }
+        nom_original: { type: string }
+        mime_type: { type: string, enum: [application/pdf, image/jpeg, image/png] }
+        taille: { type: integer, description: Taille en octets }
+        auteur_id: { type: string, format: uuid }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Bien:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        code_unique: { type: string, example: PAT-SAN-2026-0412, readOnly: true }
+        designation: { type: string }
+        categorie: { type: string }
+        valeur_acquisition: { type: integer }
+        date_acquisition: { type: string, format: date }
+        etat: { type: string, enum: [bon, usage, hors_service] }
+        statut: { type: string, enum: [en_service, sorti] }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        localisation: { type: string, nullable: true }
+        structure_id: { type: string, format: uuid }
+        responsable_id: { type: string, format: uuid, nullable: true }
+    BienModifiable:
+      type: object
+      required: [designation, categorie, valeur_acquisition, date_acquisition, etat, structure_id]
+      properties:
+        designation: { type: string }
+        categorie: { type: string }
+        valeur_acquisition: { type: integer }
+        date_acquisition: { type: string, format: date }
+        etat: { type: string, enum: [bon, usage, hors_service] }
+        localisation: { type: string, nullable: true }
+        structure_id: { type: string, format: uuid }
+        responsable_id: { type: string, format: uuid, nullable: true }
+    Mouvement:
+      type: object
+      description: Table en ajout seul (aucune modification, aucune suppression).
+      properties:
+        id: { type: string, format: uuid }
+        bien_id: { type: string, format: uuid }
+        type: { type: string, enum: [affectation, transfert, maintenance, sortie] }
+        date: { type: string, format: date-time }
+        structure_origine_id: { type: string, format: uuid, nullable: true }
+        structure_destination_id: { type: string, format: uuid, nullable: true }
+        motif: { type: string }
+        statut_validation: { type: string, example: valide }
+        auteur_id: { type: string, format: uuid }
+  responses:
+    NonAuthentifie:
+      description: Jeton absent, invalide ou expiré
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Interdit:
+      description: Rôle insuffisant
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Introuvable:
+      description: Ressource inconnue
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    Validation:
+      description: Données invalides
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors: { type: object }
