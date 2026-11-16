@@ -14,17 +14,154 @@ Un lien GitHub ne garantit pas que les modifications locales y sont publiées : 
 
 ## Sommaire
 
-1. [Présentation et fonctionnalités](#présentation-et-fonctionnalités)
-2. [Architecture](#architecture)
-3. [Normalisation des données et conventions](#normalisation-des-données-et-conventions)
-4. [Installation](#installation)
-5. [Hébergement gratuit et sécurité](#hébergement-gratuit-et-sécurité)
-6. [Comptes de démonstration](#comptes-de-démonstration)
-7. [Parcours de démonstration](#parcours-de-démonstration)
-8. [API](#api)
-9. [Tests et qualité](#tests-et-qualité)
-10. [Limites assumées](#limites-assumées)
-11. [Checklist de livraison](#checklist-de-livraison)
+1. [Le besoin](#le-besoin)
+2. [Informations gérées](#informations-gérées)
+3. [Présentation et fonctionnalités](#présentation-et-fonctionnalités)
+4. [Architecture](#architecture)
+5. [Normalisation des données et conventions](#normalisation-des-données-et-conventions)
+6. [Installation](#installation)
+7. [Hébergement gratuit et sécurité](#hébergement-gratuit-et-sécurité)
+8. [Comptes de démonstration](#comptes-de-démonstration)
+9. [Parcours de démonstration](#parcours-de-démonstration)
+10. [API](#api)
+11. [Tests et qualité](#tests-et-qualité)
+12. [Limites assumées](#limites-assumées)
+13. [Checklist de livraison](#checklist-de-livraison)
+
+## Le besoin
+
+### Nature du besoin
+
+KOFFR-IX répond à un **besoin de gestion du patrimoine mobilier et immobilier de l'État** : savoir quels biens existent, à qui ils sont confiés, où ils se trouvent, dans quel état ils sont, et ce qui leur est arrivé jusqu'à leur sortie du patrimoine.
+
+Ce n'est pas un besoin de comptabilité budgétaire, ni un besoin de paie, ni une application grand public. Le cœur du besoin est opérationnel :
+
+- **immatriculer** chaque bien une seule fois, avec un code qui ne change plus ;
+- **affecter et transférer** un bien d'une structure à une autre, avec une décision tracée ;
+- **inventorier sur le terrain** en comparant ce que l'agent voit à ce que la fiche dit ;
+- **contrôler** sans pouvoir réécrire l'historique ;
+- **rendre compte** par des listes, des écarts, des procès-verbaux et une vue agrégée.
+
+Le livrable actuel est une **démonstration pédagogique**, brief individuel d'une semaine, avec des données fictives. Il montre le parcours de bout en bout. Il ne constitue pas un système officiel de l'État togolais et ne remplace pas les outils du Trésor ou du Budget.
+
+Le cadrage détaillé, les user stories et les hypothèses à valider avec le commanditaire sont dans le [cahier des charges corrigé](docs/Cahier%20des%20charges%20KOFFR-IX%20corrige.md).
+
+### Contexte
+
+Le cadre légal de la comptabilité des matières existe déjà : la directive n°03/2012/CM/UEMOA du 29 juin 2012, transposée pour l'État, ses établissements publics et les collectivités par le décret n°2016-060/PR du 4 mai 2016. Deux décrets du 18 septembre 2024 créent les postes comptables matières dans les ministères et institutions, ainsi que les trésoreries ministérielles.
+
+Le processus prévu en quatre étapes est : inventorier le patrimoine non financier, valoriser les biens, les codifier et les immatriculer, puis enregistrer comptablement les résultats. Le comptable matières garde les biens, tient la comptabilité des matières et rend le compte de gestion à la Cour des comptes.
+
+Les parties concernées par ce cadre, dans le brief, sont :
+
+| Partie | Place dans le besoin |
+|---|---|
+| Ministère chargé de la protection du patrimoine de l'État | Commanditaire du brief |
+| Direction générale du Trésor et de la Comptabilité publique | Conduit la réforme et la formation des acteurs |
+| Cour des comptes | Destinataire du compte de gestion des matières |
+| Ministères, institutions et collectivités | Détiennent les biens et accueillent les postes comptables |
+
+### Problème à traiter
+
+Les comptables matières qui prennent leurs fonctions ont besoin d'un **outil commun** pour inventorier, immatriculer et suivre les biens jusqu'à leur sortie. Sans outil partagé, chaque structure tient ses propres tableaux : ils sont difficiles à consolider, difficiles à contrôler, et une ligne peut être corrigée ou effacée sans qu'il en reste de trace.
+
+Hypothèses de travail, à confirmer avec le commanditaire (elles ne viennent pas d'une source officielle) :
+
+- les données patrimoniales sont dispersées entre ministères, collectivités et établissements ;
+- les inventaires sont surtout manuels et vieillissent vite ;
+- les mouvements (affectation, transfert, réparation, perte, cession, réforme) sont mal tracés ;
+- les terrains et les bâtiments sont difficiles à localiser et à documenter ;
+- il n'existe pas de tableau de bord national fiable pour les décideurs.
+
+### Ce que la solution doit permettre
+
+| Objectif | Signe que le besoin est couvert |
+|---|---|
+| Identifier chaque bien une seule fois | Un code patrimoine unique et un QR code imprimable sont créés à l'enregistrement ; le code ne se modifie plus |
+| Garder la mémoire du bien | Affectation, transfert, maintenance et sortie s'ajoutent à l'historique avec date, auteur et motif ; aucune ligne ne se supprime |
+| Rendre l'inventaire plus fiable | L'agent scanne ou saisit le code, constate l'état ; l'écart avec la fiche est signalé par le système |
+| Permettre le contrôle | Le contrôleur lit l'historique, les écarts et les journaux, sans bouton d'écriture |
+| Montrer un parcours complet | Créer un bien, l'étiqueter, le transférer, ouvrir une campagne, le contrôler et voir l'écart, le tout sous Docker |
+
+Trois voies ont été écartées pour ce brief : rester sur des tableurs par structure, étendre un système budgétaire dont on ne sait pas s'il couvre déjà les biens, ou acheter un progiciel de gestion d'actifs. KOFFR-IX est une solution sur mesure de démonstration : le code et les données restent maîtrisables, et les API permettent un branchement ultérieur. Ce choix est qualitatif ; il reste à confronter à l'existant du ministère des Finances avant tout déploiement réel.
+
+### Qui a besoin de quoi
+
+| Profil | Besoin concret | Ce qu'il ne doit pas pouvoir faire |
+|---|---|---|
+| Comptable des matières | Créer et mettre à jour les fiches, immatriculer, joindre les pièces, déclarer un mouvement, ouvrir une campagne, documenter un écart | Valider à lui seul un transfert en attente ; effacer un historique |
+| Agent du patrimoine | Sur le terrain, ouvrir la fiche par scan ou saisie, constater l'état, joindre une photo et une position | Créer un bien, transférer, clôturer un écart |
+| Responsable de service | Déclarer un mouvement et décider les affectations et transferts en attente, avec un motif | Réécrire un mouvement déjà décidé |
+| Contrôleur | Lire les biens, l'historique, les écarts et les journaux | Toute écriture |
+| Administrateur | Créer les comptes et les structures, consulter les droits et les journaux | Se substituer au responsable pour valider un transfert |
+| Public, sans compte | Vérifier qu'une étiquette correspond à un bien de l'État | Voir la valeur, le responsable, la localisation précise ou les pièces |
+
+En démonstration, l'écran de connexion propose les trois premiers comptes métier. Les cinq rôles existent dans les données de départ.
+
+### Hors de ce besoin
+
+Restent hors du livrable, par choix ou par délai : application mobile native, inventaire hors ligne, mot de passe oublié, notifications, amortissement, interconnexion avec les systèmes du Trésor, journal chaîné par empreinte, signalement citoyen. Le détail est dans le cahier des charges, section « Hors périmètre ».
+
+## Informations gérées
+
+Le besoin porte sur des **informations patrimoniales**, pas sur un dossier complet de l'agent. Chaque service ne stocke que ce qui lui sert. Les noms des personnes et des structures restent dans `auth` ; les autres services ne gardent que des identifiants.
+
+### Informations d'un bien
+
+| Information | Rôle dans le besoin | Règle |
+|---|---|---|
+| Code patrimoine `PAT-{ministère}-{année}-{numéro}` | Immatriculation stable, imprimée sur l'étiquette et encodée dans le QR | Unique, créé par le système, jamais modifié ensuite |
+| Désignation, catégorie | Retrouver et classer le bien | Catégories : Matériel informatique, Mobilier, Immeubles, Véhicules, Autres |
+| Valeur d'acquisition, date d'acquisition | Connaître le coût d'entrée, en francs CFA entiers | Réservées aux utilisateurs connectés ; absentes de la page publique |
+| État (`bon`, `usage`, `hors_service`) et statut (`en_service`, `sorti`) | Savoir si le bien sert encore | L'état constaté sur le terrain peut différer de l'état de la fiche |
+| Localisation texte, latitude, longitude | Situer le bien pour la carte et le contrôle | La page publique ne montre pas la localisation précise |
+| Structure de rattachement, responsable | Savoir qui détient le bien | La structure ne change qu'à la validation d'une affectation ou d'un transfert |
+| Documents (facture, acte, titre, photo, autre) | Justifier le bien | PDF, JPG ou PNG, 10 Mo maximum, ajout seul, téléchargement authentifié |
+
+### Informations d'un mouvement
+
+Un mouvement est un fait ajouté, pas une correction de la fiche.
+
+| Type | Effet attendu | Décision |
+|---|---|---|
+| Affectation, transfert | Changement de structure | Créé `en_attente` ; la structure change seulement si un responsable valide. Un refus laisse le bien en place |
+| Maintenance | Trace d'une intervention | Appliquée tout de suite, sans changer la structure |
+| Sortie (réforme, cession, perte) | Le bien quitte le service | Appliquée tout de suite ; le statut devient `sorti` |
+
+Chaque mouvement garde la date, le motif, les structures d'origine et de destination, et l'auteur. La décision du responsable (validée ou refusée, motif, décideur) est un second enregistrement : le mouvement d'origine n'est pas réécrit.
+
+### Informations d'un inventaire
+
+| Information | Rôle |
+|---|---|
+| Campagne (nom, dates, structure, ouverte ou clôturée) | Cadre le contrôle d'un ensemble de biens |
+| Contrôle (bien, campagne, agent, date) | Un seul constat par bien et par campagne |
+| État de la fiche au moment du contrôle | Copie figée : une correction ultérieure de la fiche ne réécrit pas le constat |
+| État constaté (`bon`, `usage`, `hors_service`, `introuvable`) | Ce que l'agent voit |
+| Écart | Positionné par le système quand l'état constaté diffère de la fiche |
+| Photo et position du contrôle | Preuve de terrain, stockée avec le constat |
+| Traitement de l'écart | Décision du comptable (régularisé, réformé, main levée, autre) plus un commentaire ; le constat reste intact |
+
+### Ce qui est montré, et à qui
+
+| Information | Utilisateur connecté | Page publique de vérification |
+|---|---|---|
+| Bien de l'État, code, catégorie, ministère | Oui | Oui |
+| Valeur, dates, responsable | Oui | Non |
+| Localisation précise, coordonnées | Oui | Non |
+| Historique, documents, écarts, journaux | Selon le rôle | Non |
+| Adresse e-mail, rôle, mot de passe d'un tiers | Non dans les listes de noms | Non |
+
+Les listes qui affichent un nom de personne ou de structure passent par un appel groupé à `auth` : celui-ci ne renvoie que l'identifiant et le nom.
+
+### Jeu d'informations de la démonstration
+
+Les données de départ sont fictives et servent à raconter le parcours sans saisie préalable.
+
+- **Structures** : Ministère de la Santé (`SAN`), Ministère des Finances et du Budget (`FIN`), Ministère de l'Éducation (`EDU`). Sous la Santé : Services généraux, Ressources humaines, Hôpital régional de Lomé, Centre de santé de zone, Inspection générale.
+- **Comptes** : Ama K. (comptable, Santé), Kodjo A. (responsable, Services généraux), Yao T. (agent, Services généraux), Abla M. (responsable, Ressources humaines), Mawuli S. (contrôleur, Inspection générale), Edem R. (administrateur). Mot de passe de démonstration : `password`.
+- **Biens déjà immatriculés** : `PAT-SAN-2026-0412` Ordinateur portable HP 450, `PAT-SAN-2026-0411` Imprimante laser, `PAT-SAN-2025-0231` Climatiseur 18 000 BTU, `PAT-SAN-2025-0198` Groupe électrogène 20 kVA, `PAT-SAN-2024-0087` Véhicule utilitaire Toyota Hilux. Le prochain code Santé de 2026 sera donc `PAT-SAN-2026-0413`.
+- **Campagne** : « Inventaire 2026 », ouverte pour la Santé.
 
 ## Présentation et fonctionnalités
 
