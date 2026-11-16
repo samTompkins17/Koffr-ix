@@ -30,4 +30,12 @@ if ! grep -q '^APP_KEY=base64' .env; then
     php artisan key:generate --force --no-interaction >/dev/null 2>&1 || true
 fi
 
+# Migrations et données de démonstration, pilotées par des variables.
+if [ "${RUN_MIGRATIONS:-0}" = "1" ]; then
+    php artisan migrate --force --no-interaction
+fi
+if [ "${RUN_SEED:-0}" = "1" ]; then
+    php artisan db:seed --force --no-interaction
+fi
+
 exec "$@"
