@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'jwt' => VerifierJwt::class,
             'role' => Role::class,
         ]);
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
